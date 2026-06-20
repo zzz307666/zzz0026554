@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运动类型管理 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .sport-icon {
+            font-size: 2rem;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <a href="/admin/index" class="btn btn-secondary">返回后台</a>
+            <h3 class="d-inline ms-3">运动类型管理</h3>
+        </div>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">
+            <i class="bi bi-plus-circle"></i> 添加运动类型
+        </button>
+    </div>
+
+    <!-- 运动类型列表 -->
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>图标</th>
+                    <th>运动名称</th>
+                    <th>编码</th>
+                    <th>基础积分</th>
+                    <th>积分系数</th>
+                    <th>计量单位</th>
+                    <th>排序</th>
+                    <th>状态</th>
+                    <th>描述</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="sportType : ${sportTypes}">
+                    <td th:text="${sportType.id}">1</td>
+                    <td>
+                        <span class="sport-icon" th:text="${sportType.icon ?: '🏃'}">🏃</span>
+                    </td>
+                    <td th:text="${sportType.typeName}">跑步</td>
+                    <td th:text="${sportType.typeCode}">RUNNING</td>
+                    <td>
+                        <span class="badge bg-primary" th:text="${sportType.basePoints}">10.00</span>
+                    </td>
+                    <td th:text="${sportType.coefficient}">1.0</td>
+                    <td th:text="${sportType.unit}">分钟</td>
+                    <td th:text="${sportType.sortOrder}">1</td>
+                    <td>
+                        <span th:if="${sportType.status == 1}" class="badge bg-success">启用</span>
+                        <span th:if="${sportType.status == 0}" class="badge bg-secondary">禁用</span>
+                    </td>
+                    <td th:text="${sportType.description ?: '-'}">有氧运动</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-primary" 
+                                    th:onclick="'editSportType(' + ${sportType.id} + ')'">
+                                <i class="bi bi-pencil"></i> 编辑
+                            </button>
+                            <button class="btn btn-sm btn-warning" 
+                                    th:onclick="'toggleStatus(' + ${sportType.id} + ')'">
+                                <i class="bi bi-toggle-on"></i> 
+                                <span th:if="${sportType.status == 1}">禁用</span>
+                                <span th:if="${sportType.status == 0}">启用</span>
+                            </button>
+                            <button class="btn btn-sm btn-danger" 
+                                    th:onclick="'deleteSportType(' + ${sportType.id} + ')'">
+                                <i class="bi bi-trash"></i> 删除
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(sportTypes)}">
+                    <td colspan="10" class="text-center text-muted py-4">暂无数据</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 添加模态框 -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加运动类型</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addForm">
+                    <div class="mb-3">
+                        <label class="form-label">运动名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="typeName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">类型编码 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="typeCode" required placeholder="如：RUNNING">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">基础积分 <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="basePoints" step="0.01" min="0" required value="10">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">积分系数 <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="coefficient" step="0.1" min="0.1" required value="1.0">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">计量单位</label>
+                            <input type="text" class="form-control" name="unit" value="分钟" placeholder="如：分钟、米">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">排序</label>
+                            <input type="number" class="form-control" name="sortOrder" value="1" min="1">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">图标（Emoji）</label>
+                        <input type="text" class="form-control" name="icon" value="🏃" placeholder="如：🏃 🚴 🏊">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <textarea class="form-control" name="description" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitAdd()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑模态框 -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑运动类型</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" name="id">
+                    <div class="mb-3">
+                        <label class="form-label">运动名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="typeName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">类型编码</label>
+                        <input type="text" class="form-control" name="typeCode" readonly>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">基础积分 <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="basePoints" step="0.01" min="0" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">积分系数 <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="coefficient" step="0.1" min="0.1" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">计量单位</label>
+                            <input type="text" class="form-control" name="unit">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">排序</label>
+                            <input type="number" class="form-control" name="sortOrder" min="1">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">图标（Emoji）</label>
+                        <input type="text" class="form-control" name="icon">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <textarea class="form-control" name="description" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 提交添加
+    function submitAdd() {
+        const form = document.getElementById('addForm');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        // 转换数字类型
+        data.basePoints = parseFloat(data.basePoints);
+        data.coefficient = parseFloat(data.coefficient);
+        data.sortOrder = parseInt(data.sortOrder);
+
+        fetch('/admin/sport/type/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            if (result.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            alert('添加失败：' + error.message);
+        });
+    }
+
+    // 编辑运动类型
+    function editSportType(id) {
+        // 从表格行获取数据
+        const row = event.target.closest('tr');
+        const cells = row.cells;
+        
+        document.querySelector('#editForm [name="id"]').value = id;
+        document.querySelector('#editForm [name="typeName"]').value = cells[2].textContent;
+        document.querySelector('#editForm [name="typeCode"]').value = cells[3].textContent;
+        document.querySelector('#editForm [name="basePoints"]').value = cells[4].querySelector('.badge').textContent;
+        document.querySelector('#editForm [name="coefficient"]').value = cells[5].textContent;
+        document.querySelector('#editForm [name="unit"]').value = cells[6].textContent;
+        document.querySelector('#editForm [name="sortOrder"]').value = cells[7].textContent;
+        document.querySelector('#editForm [name="icon"]').value = cells[1].querySelector('.sport-icon').textContent.trim();
+        document.querySelector('#editForm [name="description"]').value = cells[9].textContent;
+
+        const modal = new bootstrap.Modal(document.getElementById('editModal'));
+        modal.show();
+    }
+
+    // 提交编辑
+    function submitEdit() {
+        const form = document.getElementById('editForm');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        data.id = parseInt(data.id);
+        data.basePoints = parseFloat(data.basePoints);
+        data.coefficient = parseFloat(data.coefficient);
+        data.sortOrder = parseInt(data.sortOrder);
+
+        fetch('/admin/sport/type/update', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            if (result.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            alert('更新失败：' + error.message);
+        });
+    }
+
+    // 切换状态
+    function toggleStatus(id) {
+        if (!confirm('确定要切换该运动类型的状态吗？')) return;
+
+        fetch('/admin/sport/type/toggle-status/' + id, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            if (result.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            alert('操作失败：' + error.message);
+        });
+    }
+
+    // 删除运动类型
+    function deleteSportType(id) {
+        if (!confirm('确定要删除该运动类型吗？此操作不可恢复！')) return;
+
+        fetch('/admin/sport/type/delete/' + id, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            if (result.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            alert('删除失败：' + error.message);
+        });
+    }
+</script>
+
+</body>
+</html>

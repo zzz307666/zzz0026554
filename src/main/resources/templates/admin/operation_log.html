@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>操作日志管理 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .log-card {
+            transition: all 0.3s;
+        }
+        .log-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .status-success { color: #10b981; }
+        .status-failed { color: #ef4444; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <!-- 页面标题 -->
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <a href="/admin/index" class="btn btn-secondary">返回后台</a>
+            <h3 class="d-inline ms-3">📋 操作日志管理</h3>
+        </div>
+        <div>
+            <button class="btn btn-success" onclick="exportLogs()">
+                <i class="bi bi-download"></i> 导出Excel
+            </button>
+            <button class="btn btn-danger" onclick="clearOldLogs()">
+                <i class="bi bi-trash"></i> 清理旧日志
+            </button>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">今日操作数</h6>
+                    <h3 class="mb-0" id="todayCount">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">成功操作</h6>
+                    <h3 class="mb-0" id="successCount">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h6 class="card-title">失败操作</h6>
+                    <h3 class="mb-0" id="failedCount">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">总日志数</h6>
+                    <h3 class="mb-0" id="totalCount">0</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选条件 -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> 筛选条件</h5>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">操作用户</label>
+                    <input type="text" class="form-control" name="username" placeholder="输入用户名">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">操作模块</label>
+                    <select class="form-select" name="module">
+                        <option value="">全部模块</option>
+                        <option value="用户管理">用户管理</option>
+                        <option value="运动审核">运动审核</option>
+                        <option value="评价管理">评价管理</option>
+                        <option value="积分管理">积分管理</option>
+                        <option value="系统配置">系统配置</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">操作状态</label>
+                    <select class="form-select" name="status">
+                        <option value="">全部状态</option>
+                        <option value="1">成功</option>
+                        <option value="0">失败</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid gap-2 d-md-flex">
+                        <button type="button" class="btn btn-primary flex-fill" onclick="searchLogs()">
+                            <i class="bi bi-search"></i> 查询
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="resetFilter()">
+                            <i class="bi bi-arrow-counterclockwise"></i> 重置
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">开始时间</label>
+                    <input type="datetime-local" class="form-control" name="startTime">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">结束时间</label>
+                    <input type="datetime-local" class="form-control" name="endTime">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 日志列表 -->
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> 操作日志列表</h5>
+            <span class="badge bg-secondary" id="resultCount">共 0 条记录</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="60">ID</th>
+                            <th width="120">操作用户</th>
+                            <th width="120">操作模块</th>
+                            <th>操作描述</th>
+                            <th width="100">IP地址</th>
+                            <th width="100">执行时间</th>
+                            <th width="80">状态</th>
+                            <th width="160">操作时间</th>
+                            <th width="100">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody">
+                        <tr th:each="log : ${page.records}">
+                            <td th:text="${log.id}">1</td>
+                            <td th:text="${log.username ?: '-'}">admin</td>
+                            <td>
+                                <span class="badge bg-info" th:text="${log.module ?: '未知'}">模块</span>
+                            </td>
+                            <td th:text="${log.operation}">操作描述</td>
+                            <td th:text="${log.ip}">127.0.0.1</td>
+                            <td>
+                                <span th:if="${log.duration < 100}" class="text-success" 
+                                      th:text="${log.duration} + 'ms'">50ms</span>
+                                <span th:if="${log.duration >= 100 && log.duration < 500}" class="text-warning" 
+                                      th:text="${log.duration} + 'ms'">200ms</span>
+                                <span th:if="${log.duration >= 500}" class="text-danger" 
+                                      th:text="${log.duration} + 'ms'">800ms</span>
+                            </td>
+                            <td>
+                                <span th:if="${log.result == 'SUCCESS'}" class="badge bg-success">成功</span>
+                                <span th:if="${log.result == 'FAIL'}" class="badge bg-danger">失败</span>
+                            </td>
+                            <td th:text="${#temporals.format(log.createTime, 'yyyy-MM-dd HH:mm:ss')}">2026-05-24 10:30:00</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" th:onclick="'viewDetail(' + ${log.id} + ')'">
+                                    <i class="bi bi-eye"></i> 详情
+                                </button>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(page.records)}">
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                                <p class="mt-3">暂无操作日志</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 分页 -->
+        <div class="card-footer" th:if="${!#lists.isEmpty(page.records)}">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${page.current == 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/admin/log/list(page=${page.current - 1}, size=${page.size})}">上一页</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">第 [[${page.current}]] / [[${page.pages}]] 页</span>
+                    </li>
+                    <li class="page-item" th:classappend="${page.current == page.pages} ? 'disabled'">
+                        <a class="page-link" th:href="@{/admin/log/list(page=${page.current + 1}, size=${page.size})}">下一页</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- 详情模态框 -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">操作日志详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th width="150">日志ID</th>
+                            <td id="detailId"></td>
+                        </tr>
+                        <tr>
+                            <th>操作用户</th>
+                            <td id="detailUsername"></td>
+                        </tr>
+                        <tr>
+                            <th>操作模块</th>
+                            <td id="detailModule"></td>
+                        </tr>
+                        <tr>
+                            <th>操作描述</th>
+                            <td id="detailOperation"></td>
+                        </tr>
+                        <tr>
+                            <th>请求方法</th>
+                            <td id="detailMethod"></td>
+                        </tr>
+                        <tr>
+                            <th>请求参数</th>
+                            <td><pre id="detailParams" class="bg-light p-2"></pre></td>
+                        </tr>
+                        <tr>
+                            <th>IP地址</th>
+                            <td id="detailIp"></td>
+                        </tr>
+                        <tr>
+                            <th>操作地点</th>
+                            <td id="detailLocation"></td>
+                        </tr>
+                        <tr>
+                            <th>执行时间</th>
+                            <td id="detailExecutionTime"></td>
+                        </tr>
+                        <tr>
+                            <th>操作状态</th>
+                            <td id="detailStatus"></td>
+                        </tr>
+                        <tr>
+                            <th>错误信息</th>
+                            <td><pre id="detailErrorMsg" class="bg-light p-2 text-danger"></pre></td>
+                        </tr>
+                        <tr>
+                            <th>操作时间</th>
+                            <td id="detailCreateTime"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 加载统计数据
+    function loadStats() {
+        fetch('/admin/log/stats')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('todayCount').textContent = data.todayCount || 0;
+                document.getElementById('successCount').textContent = data.successCount || 0;
+                document.getElementById('failedCount').textContent = data.failedCount || 0;
+                document.getElementById('totalCount').textContent = data.totalCount || 0;
+            })
+            .catch(error => console.error('加载统计失败:', error));
+    }
+
+    // 搜索日志
+    function searchLogs() {
+        const form = document.getElementById('filterForm');
+        const params = new URLSearchParams(new FormData(form));
+        window.location.href = '/admin/log/list?' + params.toString();
+    }
+
+    // 重置筛选
+    function resetFilter() {
+        document.getElementById('filterForm').reset();
+        window.location.href = '/admin/log/list';
+    }
+
+    // 查看详情
+    function viewDetail(id) {
+        fetch('/admin/log/detail/' + id)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('detailId').textContent = data.id;
+                document.getElementById('detailUsername').textContent = data.username || '-';
+                document.getElementById('detailModule').textContent = data.module || '-';
+                document.getElementById('detailOperation').textContent = data.operation || '-';
+                document.getElementById('detailMethod').textContent = data.method || '-';
+                document.getElementById('detailParams').textContent = data.params || '{}';
+                document.getElementById('detailIp').textContent = data.ip || '-';
+                document.getElementById('detailLocation').textContent = data.location || '-';
+                document.getElementById('detailExecutionTime').textContent = (data.duration || 0) + 'ms';
+                document.getElementById('detailStatus').innerHTML = data.result === 'SUCCESS' ? 
+                    '<span class="badge bg-success">成功</span>' : '<span class="badge bg-danger">失败</span>';
+                document.getElementById('detailErrorMsg').textContent = data.errorMsg || '无';
+                document.getElementById('detailCreateTime').textContent = data.createTime;
+                
+                new bootstrap.Modal(document.getElementById('detailModal')).show();
+            })
+            .catch(error => alert('获取详情失败: ' + error.message));
+    }
+
+    // 导出日志
+    function exportLogs() {
+        const form = document.getElementById('filterForm');
+        const params = new URLSearchParams(new FormData(form));
+        window.location.href = '/admin/log/export?' + params.toString();
+    }
+
+    // 清理旧日志
+    function clearOldLogs() {
+        if (confirm('确定要清理90天前的旧日志吗？此操作不可恢复！')) {
+            fetch('/admin/log/clear', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    location.reload();
+                }
+            })
+            .catch(error => alert('清理失败: ' + error.message));
+        }
+    }
+
+    // 页面加载时执行
+    $(document).ready(function() {
+        loadStats();
+    });
+</script>
+
+</body>
+</html>

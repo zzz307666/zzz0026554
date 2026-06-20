@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人信息 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        /* 核心修改：标题容器+登出按钮对齐样式 */
+        .title-container {
+            display: flex;
+            justify-content: space-between; /* 标题左，按钮右 */
+            align-items: flex-end; /* 底部对齐核心 */
+            width: 100%;
+            margin-bottom: 30px; /* 保持原标题下方间距 */
+        }
+        .operation-title {
+            margin: 0; /* 清除默认margin，避免对齐偏差 */
+        }
+        /* 登出按钮最上层样式（保留可点击特性） */
+        .logout-btn-wrapper {
+            position: relative;
+            z-index: 999; /* 最上层 */
+            margin-bottom: 8px; /* 精准对齐标题底部边框 */
+        }
+        .logout-btn {
+            position: relative !important;
+            z-index: 1000 !important;
+            pointer-events: auto !important;
+        }
+
+        .profile-card {
+            background: linear-gradient(135deg, #f6f8ff 0%, #f0f4ff 100%);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #e5e7eb;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        .avatar-upload {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid #4f46e5;
+            cursor: pointer;
+            background: #e5e7eb;
+        }
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .avatar-upload-btn {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            font-size: 14px;
+            display: none;
+        }
+        .avatar-upload:hover .avatar-upload-btn {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+        }
+        .read-only-input {
+            background: #f9fafb;
+            cursor: not-allowed;
+        }
+        .card-title {
+            color: #4f46e5;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4f46e5;
+        }
+        .alert {
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            .title-container {
+                flex-direction: column; /* 小屏幕下垂直排列 */
+                align-items: flex-start;
+            }
+            .logout-btn-wrapper {
+                margin-top: 10px;
+                margin-bottom: 0;
+                width: 100%;
+                text-align: right;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="operation-panel">
+    <!-- 核心修改：标题+登出按钮容器（实现底部对齐） -->
+    <div class="title-container">
+        <h2 class="operation-title">个人信息管理</h2>
+        <div class="logout-btn-wrapper">
+            <a href="/logout" class="btn btn-danger logout-btn">安全登出</a>
+        </div>
+    </div>
+
+    <!-- 返回首页按钮 -->
+    <div class="mb-4">
+        <a href="/index" class="btn btn-secondary">返回首页</a>
+    </div>
+
+    <!-- 提示信息 -->
+    <div th:if="${successMsg}" class="alert alert-success">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <span th:text="${successMsg}"></span>
+    </div>
+    <div th:if="${errorMsg}" class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span th:text="${errorMsg}"></span>
+    </div>
+
+    <!-- 头像上传卡片 -->
+    <div class="profile-card text-center">
+        <h4 class="card-title">头像设置</h4>
+        <div class="avatar-upload" id="avatarUpload">
+            <img class="avatar-img"
+                 th:src="@{${user.avatar != null and user.avatar != '' ? user.avatar : '/image/default-avatar.png'}}"
+                 alt="用户头像"
+                 onerror="this.src='https://img.icons8.com/fluency/96/000000/user-male-circle.png'">
+            <div class="avatar-upload-btn">更换头像</div>
+            <input type="file" id="avatarFile" accept="image/jpeg,image/png,image/gif" style="display: none;">
+        </div>
+        <p class="text-muted">支持JPG、PNG、GIF格式，最大10MB</p>
+    </div>
+
+    <!-- 基础信息卡片 -->
+    <div class="profile-card">
+        <h4 class="card-title">基础信息</h4>
+        <form action="/profile/update-base" method="post">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label required">用户名</label>
+                        <input type="text" class="form-control" name="username" th:value="${user.username}" >
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">真实姓名</label>
+                        <input type="text" class="form-control" name="realName" th:value="${user.realName}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">手机号</label>
+                        <input type="tel" class="form-control" name="phone" th:value="${user.phone}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" class="form-control" name="email" th:value="${user.email}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div th:if="${user.roleId == 2}"> <!-- 教师 -->
+                        <div class="form-group">
+                            <label class="form-label">教师工号</label>
+                            <input type="text" class="form-control read-only-input" th:value="${teacher.teacherNo}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">任教科目</label>
+                            <input type="text" class="form-control read-only-input" th:value="${teacher.subject}" readonly>
+                        </div>
+                    </div>
+                    <div th:if="${user.roleId == 3}"> <!-- 学生 -->
+                        <div class="form-group">
+                            <label class="form-label">学生学号</label>
+                            <input type="text" class="form-control read-only-input" th:value="${student.studentNo}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">所属班级</label>
+                            <input type="text" class="form-control read-only-input" th:value="${student.sysClass.grade + '-' + student.sysClass.className}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">出生日期</label>
+                            <input type="date" class="form-control" name="birthDate" th:value="${student.birthDate != null ? #temporals.format(student.birthDate, 'yyyy-MM-dd') : ''}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">个性签名</label>
+                        <textarea class="form-control" name="signature" rows="3" placeholder="输入个性签名（200字以内）" th:text="${user.signature}"></textarea>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">保存修改</button>
+        </form>
+    </div>
+
+    <!-- 密码修改卡片 -->
+    <div class="profile-card">
+        <h4 class="card-title">密码修改</h4>
+        <form id="passwordForm">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label required">原密码</label>
+                        <input type="password" class="form-control" id="oldPassword" required placeholder="输入原密码">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">新密码</label>
+                        <input type="password" class="form-control" id="newPassword" required placeholder="输入新密码（不少于6位）">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">确认新密码</label>
+                        <input type="password" class="form-control" id="confirmPassword" required placeholder="再次输入新密码">
+                    </div>
+                </div>
+                <div class="col-md-6 d-flex align-items-center justify-content-center">
+                    <div class="alert alert-info w-100">
+                        <h6 class="alert-heading">修改提示</h6>
+                        <ul class="mb-0">
+                            <li>新密码长度不能少于6位，且包含字母/数字/特殊字符中至少2种组合</li>
+                            <li>请妥善保管您的密码</li>
+                            <li>密码修改成功后需重新登录</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-danger" id="updatePwdBtn">修改密码</button>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+    // 头像上传
+    document.getElementById('avatarUpload').addEventListener('click', function() {
+        document.getElementById('avatarFile').click();
+    });
+
+    document.getElementById('avatarFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('avatarFile', file);
+
+            $.ajax({
+                url: '/profile/upload-avatar',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(res) {
+                    if (res.success) {
+                        alert(res.message);
+                        const avatarImg = document.querySelector('.avatar-img');
+                        avatarImg.src = res.avatarUrl + '?t=' + new Date().getTime();
+                    } else {
+                        alert(res.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('头像上传失败：', xhr.responseText);
+                    alert('头像上传失败，请检查控制台日志');
+                }
+            });
+        }
+    });
+
+    // 密码修改
+    document.getElementById('updatePwdBtn').addEventListener('click', function() {
+        const oldPwd = document.getElementById('oldPassword').value;
+        const newPwd = document.getElementById('newPassword').value;
+        const confirmPwd = document.getElementById('confirmPassword').value;
+
+        if (!oldPwd || !newPwd || !confirmPwd) {
+            alert('请填写完整信息');
+            return;
+        }
+
+        $.ajax({
+            url: '/profile/update-password',
+            type: 'POST',
+            data: {
+                oldPassword: oldPwd,
+                newPassword: newPwd,
+                confirmPassword: confirmPwd
+            },
+            success: function(res) {
+                alert(res.message);
+                if (res.success) {
+                    window.location.href = '/logout';
+                }
+            },
+            error: function() {
+                alert('密码修改失败，请重试');
+            }
+        });
+    });
+
+    // 初始化
+    window.onload = function() {
+        const avatarImg = document.querySelector('.avatar-img');
+        const signatureInput = document.querySelector('textarea[name="signature"]');
+
+        // 头像兜底
+        if (!avatarImg.src || avatarImg.src.includes('default-avatar.png') || avatarImg.src.endsWith('/')) {
+            avatarImg.src = 'https://img.icons8.com/fluency/96/000000/user-male-circle.png';
+        }
+        avatarImg.addEventListener('error', function() {
+            this.src = 'https://img.icons8.com/fluency/96/000000/user-male-circle.png';
+        });
+
+        // 个性签名兜底
+        if (!signatureInput.value) {
+            signatureInput.value = '这个人很懒，什么都没写~';
+        }
+
+        // 登出按钮点击保障
+        const logoutBtn = document.querySelector('.logout-btn');
+        logoutBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            window.location.href = this.href;
+        });
+    };
+</script>
+</body>
+</html>

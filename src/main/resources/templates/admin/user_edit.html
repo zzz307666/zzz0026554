@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑用户 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .form-container {
+            background: linear-gradient(135deg, #f6f8ff 0%, #f0f4ff 100%);
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid #e5e7eb;
+        }
+        .form-title {
+            color: #4f46e5;
+            font-weight: 700;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #4f46e5;
+        }
+        .required::after { content: " *"; color: #ef4444; }
+        .relate-form {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+
+<div class="operation-panel">
+    <h2 class="operation-title">编辑用户</h2>
+    <div class="mb-4">
+        <a href="/admin/user/manage" class="btn btn-secondary">返回列表</a>
+        <a href="/admin/index" class="btn btn-outline-secondary">返回后台</a>
+    </div>
+
+    <div class="form-container">
+        <h4 class="form-title">编辑用户信息</h4>
+        <form id="userForm">
+            <input type="hidden" id="id" th:value="${user.id}">
+            <input type="hidden" id="oldRoleId" th:value="${user.roleId}">
+            <input type="hidden" id="teacherId" th:value="${teacher?.id}">
+            <input type="hidden" id="studentId" th:value="${student?.id}">
+            <input type="hidden" id="teacherNo" th:value="${teacher?.teacherNo}">
+            <input type="hidden" id="studentNo" th:value="${student?.studentNo}">
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label required">用户名</label>
+                        <input type="text" class="form-control" id="username" name="username" required
+                               th:value="${user.username}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label required">真实姓名</label>
+                        <input type="text" class="form-control" id="realName" name="realName" required
+                               th:value="${user.realName}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">手机号</label>
+                        <input type="tel" class="form-control" id="phone" name="phone"
+                               th:value="${user.phone}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               th:value="${user.email}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label required">角色</label>
+                        <select class="form-control" id="roleId" name="roleId" required
+                                th:disabled="${user.roleId == 1}" onchange="showRelateForm(this.value)">
+                            <option value="1" th:selected="${user.roleId == 1}">管理员</option>
+                            <option value="2" th:selected="${user.roleId == 2}">教师</option>
+                            <option value="3" th:selected="${user.roleId == 3}">学生</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">修改密码</label>
+                        <input type="password" class="form-control" id="password" name="password"
+                               placeholder="不填写则保持原密码">
+                    </div>
+                    <div class="mb-3" th:unless="${user.roleId == 1}">
+                        <label class="form-label">账号状态</label>
+                        <select class="form-control" id="status" name="status">
+                            <option value="1" th:selected="${user.status == 1}">正常</option>
+                            <option value="0" th:selected="${user.status == 0}">禁用</option>
+                        </select>
+                    </div>
+                    <div class="alert alert-info mt-4">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0"><i class="bi bi-info-circle-fill"></i></div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="alert-heading">提示信息</h6>
+                                <ul class="mb-0">
+                                    <li>密码不填写则保留原密码,密码必须≥6位，且包含字母/数字/特殊字符中至少2种组合</li>
+                                    <li>管理员角色不可修改</li>
+                                    <li>带 <span class="text-danger">*</span> 号的为必填项</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 教师关联信息 -->
+            <div id="teacherRelateForm" class="relate-form" th:style="${user.roleId == 2 ? 'display:block' : 'display:none'}">
+                <h5 style="color: #4f46e5; margin-bottom: 15px;">教师关联信息 <span class="text-danger">*</span></h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label required">任教科目</label>
+                            <select class="form-control" id="subject" required>
+                                <option value="">请选择科目</option>
+                                <option value="体育" th:selected="${teacher?.subject == '体育'}">体育</option>
+                                <option value="语文" th:selected="${teacher?.subject == '语文'}">语文</option>
+                                <option value="数学" th:selected="${teacher?.subject == '数学'}">数学</option>
+                                <option value="英语" th:selected="${teacher?.subject == '英语'}">英语</option>
+                                <option value="物理" th:selected="${teacher?.subject == '物理'}">物理</option>
+                                <option value="化学" th:selected="${teacher?.subject == '化学'}">化学</option>
+                                <option value="生物" th:selected="${teacher?.subject == '生物'}">生物</option>
+                                <option value="历史" th:selected="${teacher?.subject == '历史'}">历史</option>
+                                <option value="地理" th:selected="${teacher?.subject == '地理'}">地理</option>
+                                <option value="政治" th:selected="${teacher?.subject == '政治'}">政治</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">性别</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="teacherGender" id="tg1" value="1"
+                                           th:checked="${teacher?.gender == 1 || teacher?.gender == null}">
+                                    <label class="form-check-label" for="tg1">男</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="teacherGender" id="tg2" value="2"
+                                           th:checked="${teacher?.gender == 2}">
+                                    <label class="form-check-label" for="tg2">女</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="teacherGender" id="tg0" value="0"
+                                           th:checked="${teacher?.gender == 0}">
+                                    <label class="form-check-label" for="tg0">未知</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <label class="form-label required">任职班级</label>
+                        <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto; background: white;">
+                            <div th:each="cls : ${classList}" class="form-check class-checkbox">
+                                <input class="form-check-input" type="checkbox" name="classId"
+                                       th:value="${cls.id}" th:id="'class_' + ${cls.id}"
+                                       th:checked="${#lists.contains(selectedClassIds, cls.id)}">
+                                <label class="form-check-label" th:for="'class_' + ${cls.id}"
+                                       th:text="${cls.grade + '-' + cls.className}"></label>
+                            </div>
+                        </div>
+                        <small class="text-danger">请至少选择一个任职班级</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 学生关联信息 -->
+            <div id="studentRelateForm" class="relate-form" th:style="${user.roleId == 3 ? 'display:block' : 'display:none'}">
+                <h5 style="color: #10b981; margin-bottom: 15px;">学生关联信息 <span class="text-danger">*</span></h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label required">所属班级</label>
+                            <select class="form-control" id="classId" required>
+                                <option value="">请选择班级</option>
+                                <option th:each="cls : ${classList}" th:value="${cls.id}"
+                                        th:selected="${cls.id == student?.classId}"
+                                        th:text="${cls.grade + '-' + cls.className}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">性别</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="studentGender" id="sg1" value="1"
+                                           th:checked="${student?.gender == 1 || student?.gender == null}">
+                                    <label class="form-check-label" for="sg1">男</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="studentGender" id="sg2" value="2"
+                                           th:checked="${student?.gender == 2}">
+                                    <label class="form-check-label" for="sg2">女</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="studentGender" id="sg0" value="0"
+                                           th:checked="${student?.gender == 0}">
+                                    <label class="form-check-label" for="sg0">未知</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">出生日期</label>
+                            <input type="date" class="form-control" id="birthDate"
+                                   th:value="${student?.birthDate != null ? #temporals.format(student.birthDate, 'yyyy-MM-dd') : ''}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3 mt-4">
+                <button type="button" class="btn btn-success px-5" id="submitBtn" onclick="submitForm()">
+                    <span id="submitText">保存修改</span>
+                    <span id="loadingSpinner" class="loading-spinner" style="display: none; margin-left: 10px;"></span>
+                </button>
+                <button type="button" class="btn btn-danger px-5" onclick="resetPassword()">重置密码</button>
+                <a href="/admin/user/manage" class="btn btn-secondary px-5">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // 角色联动显示关联表单
+    function showRelateForm(roleId) {
+        const teacherForm = document.getElementById('teacherRelateForm');
+        const studentForm = document.getElementById('studentRelateForm');
+        teacherForm.style.display = 'none';
+        studentForm.style.display = 'none';
+        if (roleId == 2) {
+            teacherForm.style.display = 'block';
+        } else if (roleId == 3) {
+            studentForm.style.display = 'block';
+        }
+    }
+
+    // 提交表单逻辑
+    function submitForm() {
+        const roleId = document.getElementById('roleId').value;
+        if (!roleId) {
+            alert('请选择用户角色！');
+            return;
+        }
+
+        // 构建基础用户信息
+        const userData = {
+            id: document.getElementById('id').value,
+            username: document.getElementById('username').value,
+            realName: document.getElementById('realName').value,
+            phone: document.getElementById('phone').value || '',
+            email: document.getElementById('email').value || '',
+            roleId: roleId,
+            status: document.getElementById('status') ? document.getElementById('status').value : 1,
+            password: document.getElementById('password').value || ''
+        };
+
+        // 构建请求数据（包含关联信息）
+        const requestData = {
+            user: userData
+        };
+
+        if (roleId == 2) {
+            // 教师角色：添加教师关联信息
+            const classChecked = document.querySelectorAll('input[name="classId"]:checked');
+            const classIdList = Array.from(classChecked).map(item => item.value);
+            if (classIdList.length === 0) {
+                alert('请至少选择一个任职班级！');
+                return;
+            }
+            requestData.teacher = {
+                id: document.getElementById('teacherId').value,
+                teacherNo: document.getElementById('teacherNo').value,
+                subject: document.getElementById('subject').value,
+                gender: document.querySelector('input[name="teacherGender"]:checked').value,
+                classIdList: classIdList
+            };
+        } else if (roleId == 3) {
+            // 学生角色：添加学生关联信息
+            requestData.student = {
+                id: document.getElementById('studentId').value,
+                studentNo: document.getElementById('studentNo').value,
+                classId: document.getElementById('classId').value,
+                gender: document.querySelector('input[name="studentGender"]:checked').value,
+                birthDate: document.getElementById('birthDate').value
+            };
+        }
+
+        // 显示加载状态
+        const submitBtn = document.getElementById('submitBtn');
+        const submitText = document.getElementById('submitText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        submitBtn.disabled = true;
+        submitText.textContent = '保存中...';
+        loadingSpinner.style.display = 'inline-block';
+
+        // 异步提交到后端
+        fetch('/admin/user/edit/relate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(requestData)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('修改成功！');
+                    window.location.href = '/admin/user/manage';
+                } else {
+                    alert('修改失败：' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('请求失败：' + err.message);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitText.textContent = '保存修改';
+                loadingSpinner.style.display = 'none';
+            });
+    }
+
+    // 重置密码
+    function resetPassword() {
+        const userId = document.getElementById('id').value;
+        if (confirm('确认将密码重置为 abc123 吗？')) {
+            fetch('/admin/user/reset-password/' + userId, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+                .then(res => res.json())
+                .then(data => alert(data.message))
+                .catch(err => alert('操作失败：' + err.message));
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班级运动排行榜 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .ranking-card {
+            transition: all 0.3s;
+        }
+        .ranking-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .rank-1 { background: linear-gradient(135deg, #FFD700, #FFA500); color: white; }
+        .rank-2 { background: linear-gradient(135deg, #C0C0C0, #A9A9A9); color: white; }
+        .rank-3 { background: linear-gradient(135deg, #CD7F32, #B87333); color: white; }
+        .trophy-icon { font-size: 48px; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <!-- 页面标题 -->
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <a href="/teacher/index" class="btn btn-secondary">返回教师端</a>
+            <h3 class="d-inline ms-3">🏆 班级运动排行榜</h3>
+        </div>
+        <div>
+            <select class="form-select d-inline-block w-auto" id="periodSelect">
+                <option value="month" selected>本月</option>
+                <option value="semester">本学期</option>
+            </select>
+            <button class="btn btn-outline-primary ms-2" onclick="exportRanking()">
+                <i class="bi bi-download"></i> 导出
+            </button>
+        </div>
+    </div>
+
+    <!-- 最佳进步奖 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-trophy-fill"></i> 🏆 最佳进步奖</h5>
+                    <div class="row" id="improvedStudents">
+                        <!-- 数据将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 排行榜切换标签 -->
+    <ul class="nav nav-tabs mb-4" id="rankingTabs">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#pointsRanking">
+                <i class="bi bi-star-fill"></i> 积分排行榜
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#sportCountRanking">
+                <i class="bi bi-activity"></i> 运动次数排行榜
+            </a>
+        </li>
+    </ul>
+
+    <!-- 排行榜内容 -->
+    <div class="tab-content">
+        <!-- 积分排行榜 -->
+        <div class="tab-pane fade show active" id="pointsRanking">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="pointsTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="80">排名</th>
+                                    <th>学号</th>
+                                    <th>姓名</th>
+                                    <th>积分</th>
+                                    <th>运动次数</th>
+                                    <th>平均时长(分钟)</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 数据将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 运动次数排行榜 -->
+        <div class="tab-pane fade" id="sportCountRanking">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="sportCountTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="80">排名</th>
+                                    <th>学号</th>
+                                    <th>姓名</th>
+                                    <th>运动次数</th>
+                                    <th>积分</th>
+                                    <th>平均时长(分钟)</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 数据将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    const classId = /*[[${classId}]]*/ 1;
+
+    $(document).ready(function() {
+        loadAllData();
+        
+        // 时间段切换
+        $('#periodSelect').change(function() {
+            loadAllData();
+        });
+    });
+
+    // 加载所有数据
+    function loadAllData() {
+        const period = $('#periodSelect').val();
+        loadImprovedStudents(period);
+        loadPointsRanking(period);
+        loadSportCountRanking(period);
+    }
+
+    // 加载最佳进步奖
+    function loadImprovedStudents(period) {
+        $.get('/teacher/class/ranking/most-improved', { classId: classId, period: period }, function(result) {
+            if (result.success) {
+                const data = result.data;
+                let html = '';
+                
+                data.forEach(student => {
+                    html += `
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-2">${student.award}</h3>
+                                    <h5>${student.studentName}</h5>
+                                    <p class="text-muted mb-1">${student.studentNo}</p>
+                                    <p class="text-success fw-bold">进步率：${student.improvementRate}%</p>
+                                    <small class="text-muted">${student.reason}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                $('#improvedStudents').html(html);
+            }
+        });
+    }
+
+    // 加载积分排行榜
+    function loadPointsRanking(period) {
+        $.get('/teacher/class/ranking/points', { classId: classId, period: period }, function(result) {
+            if (result.success) {
+                const data = result.data;
+                let html = '';
+                
+                data.forEach(student => {
+                    const rankClass = student.rank <= 3 ? `rank-${student.rank}` : '';
+                    html += `
+                        <tr>
+                            <td>
+                                <span class="badge ${rankClass}" style="font-size: 16px; padding: 8px 12px;">
+                                    ${student.badge || '#' + student.rank}
+                                </span>
+                            </td>
+                            <td>${student.studentNo}</td>
+                            <td><strong>${student.studentName}</strong></td>
+                            <td class="fw-bold text-primary">${student.points}</td>
+                            <td>${student.sportCount}</td>
+                            <td>${student.avgDuration}</td>
+                            <td>
+                                <a href="/teacher/student/profile/${student.studentId || 1}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> 查看档案
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                $('#pointsTable tbody').html(html);
+            }
+        });
+    }
+
+    // 加载运动次数排行榜
+    function loadSportCountRanking(period) {
+        $.get('/teacher/class/ranking/sport-count', { classId: classId, period: period }, function(result) {
+            if (result.success) {
+                const data = result.data;
+                let html = '';
+                
+                data.forEach(student => {
+                    const rankClass = student.rank <= 3 ? `rank-${student.rank}` : '';
+                    html += `
+                        <tr>
+                            <td>
+                                <span class="badge ${rankClass}" style="font-size: 16px; padding: 8px 12px;">
+                                    ${student.badge || '#' + student.rank}
+                                </span>
+                            </td>
+                            <td>${student.studentNo}</td>
+                            <td><strong>${student.studentName}</strong></td>
+                            <td class="fw-bold text-success">${student.sportCount}</td>
+                            <td>${student.points}</td>
+                            <td>${student.avgDuration}</td>
+                            <td>
+                                <a href="/teacher/student/profile/${student.studentId || 1}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> 查看档案
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                $('#sportCountTable tbody').html(html);
+            }
+        });
+    }
+
+    // 导出排行榜
+    function exportRanking() {
+        const period = $('#periodSelect').val();
+        const activeTab = $('#rankingTabs .nav-link.active').attr('href');
+        const type = activeTab === '#pointsRanking' ? 'points' : 'sport_count';
+        
+        window.location.href = `/teacher/class/ranking/export?classId=${classId}&type=${type}&period=${period}`;
+    }
+</script>
+
+</body>
+</html>

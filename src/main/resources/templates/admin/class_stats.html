@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班级数据统计 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        .stat-card {
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <!-- 页面标题 -->
+    <div class="mb-4">
+        <a href="/admin/index" class="btn btn-secondary">返回后台</a>
+        <h3 class="d-inline ms-3">📊 班级数据统计</h3>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">全校班级数</h6>
+                    <h2 class="mb-0" id="totalClasses">-</h2>
+                    <small>活跃班级：<span id="activeClasses">-</span></small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">总学生数</h6>
+                    <h2 class="mb-0" id="totalStudents">-</h2>
+                    <small>活跃学生：<span id="activeStudents">-</span></small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-warning text-dark">
+                <div class="card-body">
+                    <h6 class="card-title">平均参与率</h6>
+                    <h2 class="mb-0"><span id="participationRate">-</span>%</h2>
+                    <small id="rateChangeText">较上月 <span id="rateChange">-</span>%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">总运动记录</h6>
+                    <h2 class="mb-0" id="totalRecords">-</h2>
+                    <small>本月新增：<span id="monthRecords">-</span></small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="row mb-4">
+        <!-- 班级参与率对比 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> 班级运动参与率</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="participationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 班级积分排名 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-trophy"></i> 班级平均积分排名</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="pointsRankingChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- 运动类型分布 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> 运动类型分布</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="sportTypeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 时间趋势分析 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> 运动趋势分析</h5>
+                    <select class="form-select form-select-sm" id="trendPeriod" style="width: auto;">
+                        <option value="week">本周</option>
+                        <option value="month">本月</option>
+                        <option value="semester" selected>本学期</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 班级详细数据表格 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-table"></i> 班级详细统计数据</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="classStatsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>排名</th>
+                            <th>班级名称</th>
+                            <th>学生总数</th>
+                            <th>活跃学生</th>
+                            <th>参与率</th>
+                            <th>平均积分</th>
+                            <th>运动记录数</th>
+                            <th>平均时长(分钟)</th>
+                            <th>最受欢迎运动</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 数据将通过JavaScript动态加载 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 初始化图表
+    let participationChart, pointsRankingChart, sportTypeChart, trendChart;
+
+    $(document).ready(function() {
+        loadOverview();
+        loadAllData();
+
+        // 时间段切换
+        $('#trendPeriod').change(function() {
+            loadTrendData($(this).val());
+        });
+    });
+
+    // 加载总体统计数据
+    function loadOverview() {
+        $.get('/admin/class-stats/overview', function(result) {
+            if (result.success) {
+                $('#totalClasses').text(result.data.totalClasses);
+                $('#activeClasses').text(result.data.totalClasses);
+                $('#totalStudents').text(result.data.totalStudents);
+                $('#activeStudents').text(result.data.activeStudents);
+                $('#participationRate').text(result.data.participationRate);
+                $('#totalRecords').text(result.data.totalRecords);
+                $('#monthRecords').text(result.data.monthRecords);
+                var rateChange = result.data.rateChange;
+                var changeText = rateChange >= 0 ? '+' + rateChange : rateChange.toString();
+                $('#rateChange').text(changeText);
+            }
+        });
+    }
+
+    // 加载所有数据
+    function loadAllData() {
+        loadParticipationRate();
+        loadPointsRanking();
+        loadSportDistribution();
+        loadTrendData('semester');
+        loadClassDetailTable();
+    }
+
+    // 加载参与率数据
+    function loadParticipationRate() {
+        $.get('/admin/class-stats/participation-rate', function(result) {
+            if (result.success) {
+                const data = result.data;
+                const labels = data.map(item => item.className);
+                const rates = data.map(item => item.participationRate);
+                
+                const ctx = document.getElementById('participationChart').getContext('2d');
+                participationChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '参与率 (%)',
+                            data: rates,
+                            backgroundColor: [
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(75, 192, 192, 0.8)',
+                                'rgba(255, 206, 86, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(255, 206, 86, 1)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // 加载积分排名
+    function loadPointsRanking() {
+        $.get('/admin/class-stats/points-ranking', function(result) {
+            if (result.success) {
+                const data = result.data;
+                const labels = data.map(item => item.className);
+                const points = data.map(item => item.avgPoints);
+                
+                const ctx = document.getElementById('pointsRankingChart').getContext('2d');
+                pointsRankingChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '平均积分',
+                            data: points,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // 加载运动类型分布
+    function loadSportDistribution() {
+        $.get('/admin/class-stats/sport-distribution', function(result) {
+            if (result.success) {
+                const distribution = result.data.distribution;
+                const labels = distribution.map(item => item.sportType);
+                const counts = distribution.map(item => item.count);
+                const colors = [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)'
+                ];
+                
+                const ctx = document.getElementById('sportTypeChart').getContext('2d');
+                sportTypeChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: counts,
+                            backgroundColor: colors,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // 加载趋势数据
+    function loadTrendData(period) {
+        $.get('/admin/class-stats/time-trend', { period: period }, function(result) {
+            if (result.success) {
+                const data = result.data;
+                const labels = data.map(item => item.label);
+                const counts = data.map(item => item.count);
+                
+                if (trendChart) {
+                    trendChart.destroy();
+                }
+                
+                const ctx = document.getElementById('trendChart').getContext('2d');
+                trendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '运动次数',
+                            data: counts,
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // 加载班级详细数据表格
+    function loadClassDetailTable() {
+        $.get('/admin/class-stats/all-class-stats', function(result) {
+            if (result.success && result.data) {
+                const tbody = $('#classStatsTable tbody');
+                let html = '';
+                
+                result.data.forEach(cls => {
+                    html += `
+                        <tr>
+                            <td><span class="badge bg-primary">#${cls.rank}</span></td>
+                            <td>${cls.className}</td>
+                            <td>${cls.totalStudents}</td>
+                            <td>${cls.activeStudents}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-success" style="width: ${cls.participationRate}%">
+                                        ${cls.participationRate}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="fw-bold">${cls.avgPoints}</td>
+                            <td>${cls.totalSportRecords}</td>
+                            <td>${cls.avgDuration}</td>
+                            <td><span class="badge bg-info">${cls.topSportType}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewClassDetail(${cls.classId || cls.id})">
+                                    <i class="bi bi-eye"></i> 详情
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                tbody.html(html);
+            } else {
+                console.error('加载班级统计数据失败:', result.message);
+                $('#classStatsTable tbody').html('<tr><td colspan="10" class="text-center text-muted">加载数据失败</td></tr>');
+            }
+        }).fail(function() {
+            console.error('请求班级统计数据失败');
+            $('#classStatsTable tbody').html('<tr><td colspan="10" class="text-center text-muted">加载数据失败</td></tr>');
+        });
+    }
+
+    // 查看班级详情
+    function viewClassDetail(classId) {
+        alert('查看班级 ' + classId + ' 的详细统计（功能开发中）');
+    }
+</script>
+
+</body>
+</html>

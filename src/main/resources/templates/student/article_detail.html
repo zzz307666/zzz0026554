@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${article.title} + ' - 运动健康知识库'">文章详情</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .article-content {
+            line-height: 1.8;
+            font-size: 16px;
+        }
+        .article-content img {
+            max-width: 100%;
+            height: auto;
+        }
+        .article-meta {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container mt-4">
+    <!-- 返回按钮 -->
+    <div class="mb-3">
+        <a href="/student/health/knowledge" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    <!-- 文章卡片 -->
+    <div class="card">
+        <div class="card-body">
+            <!-- 文章标题 -->
+            <h1 class="card-title mb-3" th:text="${article.title}">文章标题</h1>
+            
+            <!-- 文章元信息 -->
+            <div class="article-meta">
+                <div class="row">
+                    <div class="col-md-4">
+                        <span class="badge bg-primary me-2" th:text="${article.category}">分类</span>
+                        <small class="text-muted">
+                            <i class="bi bi-person"></i> <span th:text="${article.authorName}">作者</span>
+                        </small>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <small class="text-muted">
+                            <i class="bi bi-calendar"></i> 
+                            <span th:text="${#temporals.format(article.createTime, 'yyyy-MM-dd HH:mm')}">发布时间</span>
+                        </small>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <small class="text-muted">
+                            <i class="bi bi-eye"></i> <span th:text="${article.viewCount}">0</span> 次阅读
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文章摘要 -->
+            <div class="alert alert-info" th:if="${article.summary}">
+                <strong>摘要：</strong>
+                <span th:text="${article.summary}">文章摘要...</span>
+            </div>
+
+            <hr>
+
+            <!-- 文章内容 -->
+            <div class="article-content" th:utext="${article.content}">
+                文章内容...
+            </div>
+
+            <hr>
+
+            <!-- 分享和返回 -->
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div>
+                    <button class="btn btn-outline-primary" onclick="window.print()">
+                        <i class="bi bi-printer"></i> 打印文章
+                    </button>
+                    <button class="btn btn-outline-success ms-2">
+                        <i class="bi bi-share"></i> 分享
+                    </button>
+                </div>
+                <a href="/student/health/knowledge" class="btn btn-primary">
+                    <i class="bi bi-arrow-left"></i> 返回知识库
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相关文章推荐 -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-bookmark-star"></i> 推荐阅读</h5>
+        </div>
+        <div class="card-body">
+            <div class="list-group list-group-flush">
+                <a href="#" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">如何科学制定运动计划？</h6>
+                        <small class="text-muted"><i class="bi bi-eye"></i> 1234</small>
+                    </div>
+                    <small class="text-muted">运动科普</small>
+                </a>
+                <a href="#" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">运动后应该如何补充营养？</h6>
+                        <small class="text-muted"><i class="bi bi-eye"></i> 987</small>
+                    </div>
+                    <small class="text-muted">健康饮食</small>
+                </a>
+                <a href="#" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">常见运动损伤的预防与处理</h6>
+                        <small class="text-muted"><i class="bi bi-eye"></i> 856</small>
+                    </div>
+                    <small class="text-muted">损伤预防</small>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

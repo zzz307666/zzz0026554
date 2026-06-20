@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=1.0}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        .status-active { color: #28a745; font-weight: bold; }
+        .status-inactive { color: #dc3545; font-weight: bold; }
+
+        /* ==================== 搜索表单文字强制单行核心样式 ==================== */
+        /* 表单内所有元素文字强制不换行 */
+        .search-form input,
+        .search-form select,
+        .search-form button,
+        .search-form .input-group-text,
+        .search-form option {
+            white-space: nowrap !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        /* 防止输入组图标标签被压缩换行 */
+        .search-form .input-group-text {
+            flex-shrink: 0 !important;
+            width: 42px;
+            justify-content: center;
+        }
+        /* 输入框内容单行显示，不折行，限制最大宽度避免拉伸 */
+        .search-form .form-control {
+            flex-shrink: 1;
+            min-width: 0;
+            word-break: keep-all;
+        }
+        /* 按钮文字强制单行，不换行，固定最小宽度 */
+        .search-form .btn {
+            white-space: nowrap !important;
+            min-width: 70px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="operation-panel">
+    <h2 class="operation-title">用户管理</h2>
+    <div class="mb-4">
+        <a href="/admin/index" class="btn btn-secondary">返回后台</a>
+        <a href="/admin/user/manage" class="btn btn-nav-active">用户管理</a>
+        <a href="/admin/teacher/manage" class="btn btn-primary">教师管理</a>
+        <a href="/admin/student/manage" class="btn btn-primary">学生管理</a>
+        <a href="/admin/class/manage" class="btn btn-primary">班级管理</a>
+        <a href="/admin/user/add" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> 添加用户
+        </a>
+    </div>
+
+    <!-- 优化后搜索表单：缩小用户名/真实姓名宽度，优化栅格分配，总宽度12列不溢出 -->
+    <div class="search-form">
+        <form th:action="@{/admin/user/manage}" method="get" class="row g-3" id="searchForm">
+            <!-- 用户名：从col-md-3缩小为col-md-2，适配小屏幕col-sm-6 -->
+            <div class="col-md-2 col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" class="form-control" name="username"
+                           th:value="${query != null ? query.username : ''}" placeholder="用户名">
+                </div>
+            </div>
+            <!-- 真实姓名：从col-md-3缩小为col-md-2，适配小屏幕col-sm-6 -->
+            <div class="col-md-2 col-sm-6">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+                    <input type="text" class="form-control" name="realName"
+                           th:value="${query != null ? query.realName : ''}" placeholder="真实姓名">
+                </div>
+            </div>
+            <!-- 角色：保持col-md-2，适配小屏幕col-sm-4 -->
+            <div class="col-md-2 col-sm-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-people"></i></span>
+                    <select class="form-control" name="roleId">
+                        <option value="">全部角色</option>
+                        <option value="1" th:selected="${query != null and query.roleId == 1}">管理员</option>
+                        <option value="2" th:selected="${query != null and query.roleId == 2}">教师</option>
+                        <option value="3" th:selected="${query != null and query.roleId == 3}">学生</option>
+                    </select>
+                </div>
+            </div>
+            <!-- 状态：保持col-md-2，适配小屏幕col-sm-4 -->
+            <div class="col-md-2 col-sm-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-toggle-on"></i></span>
+                    <select class="form-control" name="status">
+                        <option value="">全部状态</option>
+                        <option value="1" th:selected="${query != null and query.status == 1}">正常</option>
+                        <option value="0" th:selected="${query != null and query.status == 0}">禁用</option>
+                    </select>
+                </div>
+            </div>
+            <!-- 按钮区域：从col-md-2扩大为col-md-4，适配小屏幕col-sm-4，充足宽度避免文字换行 -->
+            <div class="col-md-4 col-sm-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill">
+                    <i class="bi bi-search"></i> 搜索
+                </button>
+                <button type="button" class="btn btn-secondary flex-fill" onclick="resetSearch()">
+                    <i class="bi bi-arrow-clockwise"></i> 重置
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 用户列表 -->
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>用户名</th>
+                <th>真实姓名</th>
+                <th>角色</th>
+                <th>手机号</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${#lists.isEmpty(page.records)}">
+                <td colspan="8" class="text-center py-5">
+                    <div class="empty-state">
+                        <i class="bi bi-person-square" style="font-size: 48px;"></i>
+                        <h4 class="mt-3 mb-2">暂无用户数据</h4>
+                        <p class="text-muted">请添加用户或调整搜索条件</p>
+                        <a href="/admin/user/add" class="btn btn-success mt-3">
+                            <i class="bi bi-plus-circle"></i> 添加用户
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            <tr th:each="user, stat : ${page.records}" th:unless="${#lists.isEmpty(page.records)}">
+                <td th:text="${stat.count}"></td>
+                <td th:text="${user.username}"></td>
+                <td th:text="${user.realName}"></td>
+                <td>
+                    <span th:if="${user.roleId == 1}" class="badge bg-danger">管理员</span>
+                    <span th:if="${user.roleId == 2}" class="badge bg-primary">教师</span>
+                    <span th:if="${user.roleId == 3}" class="badge bg-success">学生</span>
+                </td>
+                <td th:text="${user.phone}"></td>
+                <td>
+                    <span th:if="${user.status == 1}" class="badge bg-success">正常</span>
+                    <span th:if="${user.status == 0}" class="badge bg-danger">禁用</span>
+                </td>
+                <td th:text="${#temporals.format(user.createTime, 'yyyy-MM-dd')}"></td>
+                <td>
+                    <div class="action-buttons">
+                        <button th:unless="${user.roleId == 1}"
+                                th:if="${user.status == 1}" class="btn btn-warning btn-sm"
+                                th:onclick="'updateStatus(' + ${user.id} + ', 0)'">禁用</button>
+                        <button th:unless="${user.roleId == 1}"
+                                th:if="${user.status == 0}" class="btn btn-success btn-sm"
+                                th:onclick="'updateStatus(' + ${user.id} + ', 1)'">启用</button>
+                        <button class="btn btn-info btn-sm"
+                                th:onclick="'resetPassword(' + ${user.id} + ')'">重置密码</button>
+                        <a th:href="@{/admin/user/edit/{id}(id=${user.id})}" class="btn btn-primary btn-sm">编辑</a>
+                        <button th:unless="${user.roleId == 1}" class="btn btn-danger btn-sm"
+                                th:onclick="'deleteUser(' + ${user.id} + ')'">删除</button>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    <nav th:if="${page.pages > 1}">
+        <ul class="pagination justify-content-center">
+            <li class="page-item" th:classappend="${page.current == 1} ? 'disabled' : ''">
+                <a class="page-link" th:href="@{/admin/user/manage(page=1)}">首页</a>
+            </li>
+            <li class="page-item" th:classappend="${page.current == 1} ? 'disabled' : ''">
+                <a class="page-link" th:href="@{/admin/user/manage(page=${page.current - 1})}">上一页</a>
+            </li>
+            <li class="page-item" th:each="i : ${#numbers.sequence(1, page.pages)}"
+                th:classappend="${i == page.current} ? 'active' : ''">
+                <a class="page-link" th:href="@{/admin/user/manage(page=${i})}" th:text="${i}"></a>
+            </li>
+            <li class="page-item" th:classappend="${page.current == page.pages} ? 'disabled' : ''">
+                <a class="page-link" th:href="@{/admin/user/manage(page=${page.current + 1})}">下一页</a>
+            </li>
+            <li class="page-item" th:classappend="${page.current == page.pages} ? 'disabled' : ''">
+                <a class="page-link" th:href="@{/admin/user/manage(page=${page.pages})}">尾页</a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<script>
+    // 更新用户状态
+    function updateStatus(userId, status) {
+        const actionText = status == 0 ? '禁用' : '启用';
+        if (confirm(`确认${actionText}该用户？`)) {
+            fetch('/admin/user/status/' + userId + '?status=' + status, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('网络响应异常');
+                    return response.json();
+                })
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) location.reload();
+                })
+                .catch(error => alert('操作失败：' + error.message));
+        }
+    }
+
+    // 重置密码
+    function resetPassword(userId) {
+        if (confirm('确认重置密码为abc123？')) {
+            fetch('/admin/user/reset-password/' + userId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('网络响应异常');
+                    return response.json();
+                })
+                .then(data => alert(data.message))
+                .catch(error => alert('操作失败：' + error.message));
+        }
+    }
+
+    // 删除用户
+    function deleteUser(userId) {
+        if (confirm('确认删除该用户？（物理删除，将永久移除）')) {
+            fetch('/admin/user/delete/' + userId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('网络响应异常');
+                    return response.json();
+                })
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) location.reload();
+                })
+                .catch(error => alert('操作失败：' + error.message));
+        }
+    }
+
+    // 重置搜索条件
+    function resetSearch() {
+        const form = document.getElementById('searchForm');
+        form.querySelectorAll('input, select').forEach(input => input.value = '');
+        form.submit();
+    }
+</script>
+</body>
+</html>

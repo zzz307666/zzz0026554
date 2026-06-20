@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员后台 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .stats-card {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+        .stats-card .stat-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .stats-card .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .stats-card .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .welcome-card {
+            background: linear-gradient(135deg, #f6f8ff 0%, #f0f4ff 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 2px solid #e5e7eb;
+        }
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .quick-action-btn {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: #2d3748;
+        }
+        .quick-action-btn:hover {
+            border-color: #4f46e5;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.1);
+        }
+        .quick-action-btn i {
+            font-size: 24px;
+            color: #4f46e5;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="operation-panel">
+    <h2 class="operation-title">管理员后台</h2>
+
+    <!-- 欢迎信息 -->
+    <div class="welcome-card">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4>欢迎回来，<span class="text-primary" th:text="${realName}"></span>！</h4>
+                <p class="text-muted mb-0">今天是 <span id="currentDate"></span></p>
+            </div>
+            <a href="/logout" class="btn btn-danger">
+                <i class="bi bi-box-arrow-right"></i> 安全登出
+            </a>
+        </div>
+    </div>
+
+    <!-- 功能卡片 -->
+    <div class="operation-card">
+        <a href="/admin/user/manage" class="card-item text-decoration-none">
+            <div class="card-icon">👥</div>
+            <div class="card-text">用户管理</div>
+            <small class="text-muted mt-2">查看和管理所有用户账号</small>
+        </a>
+        <a href="/admin/class/manage" class="card-item text-decoration-none">
+            <div class="card-icon">🏫</div>
+            <div class="card-text">班级管理</div>
+            <small class="text-muted mt-2">管理年级和班级信息</small>
+        </a>
+        <a href="/admin/teacher/manage" class="card-item text-decoration-none">
+            <div class="card-icon">👨‍🏫</div>
+            <div class="card-text">教师管理</div>
+            <small class="text-muted mt-2">管理教师信息和任教科目</small>
+        </a>
+        <a href="/admin/student/manage" class="card-item text-decoration-none">
+            <div class="card-icon">👨‍🎓</div>
+            <div class="card-text">学生管理</div>
+            <small class="text-muted mt-2">管理启用学生信息和班级分配</small>
+        </a>
+        <a href="/admin/dimension/config" class="card-item text-decoration-none">
+            <div class="card-icon">⚙️</div>
+            <div class="card-text">维度配置</div>
+            <small class="text-muted mt-2">配置五维评价指标权重</small>
+        </a>
+        <a href="/admin/sport/type/manage" class="card-item text-decoration-none">
+            <div class="card-icon">🏃</div>
+            <div class="card-text">运动类型</div>
+            <small class="text-muted mt-2">管理运动类型和积分规则</small>
+        </a>
+        <a href="/admin/points/rule" class="card-item text-decoration-none">
+            <div class="card-icon">📊</div>
+            <div class="card-text">积分规则</div>
+            <small class="text-muted mt-2">配置积分规则和奖励机制</small>
+        </a>
+        <a href="/admin/log/list" class="card-item text-decoration-none">
+            <div class="card-icon">📋</div>
+            <div class="card-text">操作日志</div>
+            <small class="text-muted mt-2">查看系统操作记录</small>
+        </a>
+        <a href="/teacher/sport/audit" class="card-item text-decoration-none">
+            <div class="card-icon">✅</div>
+            <div class="card-text">运动审核</div>
+            <small class="text-muted mt-2">审核学生运动打卡记录</small>
+        </a>
+        <a href="/teacher/evaluation/list" class="card-item text-decoration-none">
+            <div class="card-icon">⭐</div>
+            <div class="card-text">学生评价</div>
+            <small class="text-muted mt-2">对学生进行五维能力评价</small>
+        </a>
+        <a href="/student/ranking" class="card-item text-decoration-none">
+            <div class="card-icon">🏆</div>
+            <div class="card-text">班级排名</div>
+            <small class="text-muted mt-2">查看各班级学生排名情况</small>
+        </a>
+        <a href="/admin/exchange/manage" class="card-item text-decoration-none">
+            <div class="card-icon">📦</div>
+            <div class="card-text">兑换管理</div>
+            <small class="text-muted mt-2">管理学生积分兑换记录</small>
+        </a>
+        <a href="/admin/exchange/gifts" class="card-item text-decoration-none">
+            <div class="card-icon">🎁</div>
+            <div class="card-text">奖品管理</div>
+            <small class="text-muted mt-2">管理积分商城奖品信息</small>
+        </a>
+        <a href="/admin/announcements" class="card-item text-decoration-none">
+            <div class="card-icon">📢</div>
+            <div class="card-text">系统公告</div>
+            <small class="text-muted mt-2">发布和管理系统公告</small>
+        </a>
+        <a href="/admin/class-stats/dashboard" class="card-item text-decoration-none">
+            <div class="card-icon">📈</div>
+            <div class="card-text">班级统计</div>
+            <small class="text-muted mt-2">全校班级数据可视化分析</small>
+        </a>
+        <a href="/admin/data-import-export" class="card-item text-decoration-none">
+            <div class="card-icon">📥</div>
+            <div class="card-text">数据导入导出</div>
+            <small class="text-muted mt-2">Excel批量导入导出功能</small>
+        </a>
+        <a href="/admin/permission/management" class="card-item text-decoration-none">
+            <div class="card-icon">🔐</div>
+            <div class="card-text">权限管理</div>
+            <small class="text-muted mt-2">角色权限和数据权限配置</small>
+        </a>
+        <a href="/admin/backup/management" class="card-item text-decoration-none">
+            <div class="card-icon">💾</div>
+            <div class="card-text">数据备份</div>
+            <small class="text-muted mt-2">数据库备份与恢复</small>
+        </a>
+        <a href="/admin/monitor/dashboard" class="card-item text-decoration-none">
+            <div class="card-icon">🖥️</div>
+            <div class="card-text">系统监控</div>
+            <small class="text-muted mt-2">实时监控系统运行状态</small>
+        </a>
+    </div>
+
+    <!-- 快捷操作 -->
+    <div class="mt-5">
+        <h5 class="mb-3">快捷操作</h5>
+        <div class="quick-actions">
+            <a href="/admin/class/add" class="quick-action-btn">
+                <i class="bi bi-building"></i>
+                <div>添加班级</div>
+            </a>
+            <a href="/admin/teacher/add" class="quick-action-btn">
+                <i class="bi bi-person-plus"></i>
+                <div>添加教师</div>
+            </a>
+            <a href="/admin/student/add" class="quick-action-btn">
+                <i class="bi bi-person-plus"></i>
+                <div>添加学生</div>
+            </a>
+            <a href="/admin/user/manage" class="quick-action-btn">
+                <i class="bi bi-key"></i>
+                <div>重置密码</div>
+            </a>
+            <a href="/teacher/sport/audit" class="quick-action-btn">
+                <i class="bi bi-clipboard-check"></i>
+                <div>运动审核</div>
+            </a>
+            <a href="/teacher/evaluation/list" class="quick-action-btn">
+                <i class="bi bi-star"></i>
+                <div>学生评价</div>
+            </a>
+            <a href="/student/ranking" class="quick-action-btn">
+                <i class="bi bi-trophy"></i>
+                <div>查看排名</div>
+            </a>
+            <a href="/admin/exchange/gift/add" class="quick-action-btn">
+                <i class="bi bi-gift"></i>
+                <div>添加奖品</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 返回首页 -->
+    <div class="mt-5 text-center">
+        <a href="/" class="btn btn-outline-primary">
+            <i class="bi bi-house-door"></i> 退出到登录页
+        </a>
+    </div>
+</div>
+
+<script>
+    // 设置当前日期
+    const now = new Date();
+    const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+    document.getElementById('currentDate').textContent = now.toLocaleDateString('zh-CN', options);
+
+    // 从后端获取真实统计数据
+    $.get('/admin/stats', function(result) {
+        if (result.success) {
+            document.getElementById('userCount').textContent = result.data.userCount || '0';
+            document.getElementById('teacherCount').textContent = result.data.teacherCount || '0';
+            document.getElementById('studentCount').textContent = result.data.studentCount || '0';
+            document.getElementById('activeCount').textContent = result.data.activeCount || '0';
+        }
+    });
+
+    // 添加图标支持
+    document.head.insertAdjacentHTML('beforeend',
+        '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">');
+</script>
+</body>
+</html>

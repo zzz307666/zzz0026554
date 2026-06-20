@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生管理 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=1.0}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="operation-panel">
+    <h2 class="operation-title">学生管理</h2>
+    <div class="mb-4">
+        <a href="/admin/index" class="btn btn-secondary">返回后台</a>
+        <a href="/admin/user/manage" class="btn btn-primary">用户管理</a>
+        <a href="/admin/teacher/manage" class="btn btn-primary">教师管理</a>
+        <a href="/admin/student/manage" class="btn btn-nav-active">学生管理</a>
+        <a href="/admin/class/manage" class="btn btn-primary">班级管理</a>
+        <a href="/admin/student/add" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> 添加学生
+        </a>
+    </div>
+
+    <!-- 统一标准搜索表单（新增年级搜索） -->
+    <div class="search-form">
+        <form th:action="@{/admin/student/manage}" method="get" class="row g-3" id="searchForm">
+            <div class="col-md-2">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" class="form-control" name="realName"
+                           th:value="${realName}" placeholder="学生姓名">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-id-card"></i></span>
+                    <input type="text" class="form-control" name="studentNo"
+                           th:value="${studentNo}" placeholder="学生学号">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-book"></i></span>
+                    <select class="form-control" name="grade">
+                        <option value="">全部年级</option>
+                        <option value="大一" th:selected="${grade == '大一'}">大一</option>
+                        <option value="大二" th:selected="${grade == '大二'}">大二</option>
+                        <option value="大三" th:selected="${grade == '大三'}">大三</option>
+                        <option value="大四" th:selected="${grade == '大四'}">大四</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-building"></i></span>
+                    <input type="text" class="form-control" name="className"
+                           th:value="${className}" placeholder="班级名称">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> 搜索
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-secondary w-100" onclick="resetSearch()">
+                    <i class="bi bi-arrow-clockwise"></i> 重置
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 学生列表 -->
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>学生学号</th>
+                <th>姓名</th>
+                <th>用户名</th>
+                <th>年级/班级</th>
+                <th>性别</th>
+                <th>手机号</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${#lists.isEmpty(students)}">
+                <td colspan="10" class="text-center py-5">
+                    <div class="empty-state">
+                        <i class="bi bi-person-square" style="font-size: 48px;"></i>
+                        <h4 class="mt-3 mb-2">暂无学生数据</h4>
+                        <p class="text-muted">请添加学生或调整搜索条件</p>
+                        <a href="/admin/student/add" class="btn btn-success mt-3">
+                            <i class="bi bi-plus-circle"></i> 添加学生
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            <tr th:each="student, stat : ${students}" th:unless="${#lists.isEmpty(students)}">
+                <td th:text="${stat.count}"></td>
+                <td th:text="${student.studentNo}"></td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar">
+                            <span th:text="${#strings.substring(student.realName, 0, 1)}"></span>
+                        </div>
+                        <span th:text="${student.realName}"></span>
+                    </div>
+                </td>
+                <td th:text="${student.username}"></td>
+                <td>
+                    <span th:text="${student.grade + '/' + student.className}"></span>
+                </td>
+                <td>
+                    <span th:if="${student.gender == 1}">
+                        <i class="bi bi-gender-male text-primary"></i> 男
+                    </span>
+                    <span th:if="${student.gender == 2}">
+                        <i class="bi bi-gender-female text-danger"></i> 女
+                    </span>
+                    <span th:if="${student.gender == 0}">
+                        <i class="bi bi-gender-ambiguous text-secondary"></i> 未知
+                    </span>
+                </td>
+                <td th:text="${student.phone}"></td>
+                <td>
+                    <span th:if="${student.status == 1}" class="badge bg-success">正常</span>
+                    <span th:if="${student.status == 0}" class="badge bg-danger">禁用</span>
+                </td>
+                <td th:text="${#temporals.format(student.createTime, 'yyyy-MM-dd')}"></td>
+                <td>
+                    <div class="action-buttons">
+                        <a th:href="@{/admin/student/edit/{userId}(userId=${student.userId})}"
+                           class="btn btn-warning btn-sm">
+                            <i class="bi bi-pencil"></i> 编辑
+                        </a>
+                        <button class="btn btn-danger btn-sm"
+                                th:onclick="'deleteStudent(' + ${student.userId} + ')'">
+                            <i class="bi bi-trash"></i> 删除
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function deleteStudent(userId) {
+        if (confirm('确认删除该学生吗？此操作将永久删除该学生账号及所有关联数据！')) {
+            fetch('/admin/student/delete/' + userId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('网络响应异常');
+                    return response.json();
+                })
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) location.reload();
+                })
+                .catch(error => alert('操作失败：' + error.message));
+        }
+    }
+
+    // 重置搜索条件
+    function resetSearch() {
+        const form = document.getElementById('searchForm');
+        form.querySelectorAll('input, select').forEach(input => input.value = '');
+        form.submit();
+    }
+</script>
+</body>
+</html>

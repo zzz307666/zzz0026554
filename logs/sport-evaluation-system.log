@@ -1,0 +1,18 @@
+2026-02-11 13:03:01 [main] INFO  com.hhjt.Demo01Application - Starting Demo01Application using Java 1.8.0_411 on LAPTOP-78CK2BH3 with PID 22608 (D:\myjavastu\myxiangmu\demo01\target\classes started by admin in D:\myjavastu\myxiangmu\demo01)
+2026-02-11 13:03:01 [main] INFO  com.hhjt.Demo01Application - No active profile set, falling back to 1 default profile: "default"
+2026-02-11 13:03:02 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8083 (http)
+2026-02-11 13:03:02 [main] INFO  org.apache.catalina.core.AprLifecycleListener - Loaded Apache Tomcat Native library [1.3.1] using APR version [1.7.4].
+2026-02-11 13:03:02 [main] INFO  org.apache.catalina.core.AprLifecycleListener - APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true], UDS [true].
+2026-02-11 13:03:02 [main] INFO  org.apache.catalina.core.AprLifecycleListener - APR/OpenSSL configuration: useAprConnector [false], useOpenSSL [true]
+2026-02-11 13:03:02 [main] INFO  org.apache.catalina.core.AprLifecycleListener - OpenSSL successfully initialized [OpenSSL 3.0.14 4 Jun 2024]
+2026-02-11 13:03:02 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-02-11 13:03:02 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.69]
+2026-02-11 13:03:02 [main] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-02-11 13:03:02 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 949 ms
+2026-02-11 13:03:04 [main] INFO  o.s.security.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@51841ac6, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@5ba26eb0, org.springframework.security.web.context.SecurityContextPersistenceFilter@2d272b0d, org.springframework.security.web.header.HeaderWriterFilter@1debc91c, org.springframework.security.web.authentication.logout.LogoutFilter@1a2909ae, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter@3c69362a, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@5c448433, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@26221bad, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@435e60ff, org.springframework.security.web.session.SessionManagementFilter@181e72d3, org.springframework.security.web.access.ExceptionTranslationFilter@1bc776b7, org.springframework.security.web.access.intercept.FilterSecurityInterceptor@5a2fa51f]
+2026-02-11 13:03:04 [main] INFO  o.s.b.a.web.servlet.WelcomePageHandlerMapping - Adding welcome page template: index
+2026-02-11 13:03:04 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8083 (http) with context path ''
+2026-02-11 13:03:04 [main] INFO  com.hhjt.Demo01Application - Started Demo01Application in 3.465 seconds (JVM running for 4.725)
+2026-02-11 13:03:14 [http-nio-8083-exec-3] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-02-11 13:03:14 [http-nio-8083-exec-3] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-02-11 13:03:14 [http-nio-8083-exec-3] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 0 ms

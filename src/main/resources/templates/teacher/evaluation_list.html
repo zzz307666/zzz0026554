@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评价列表 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div class="container mt-4">
+    <div class="mb-4">
+        <a th:href="${isAdmin} ? '/admin/index' : '/teacher/index'" 
+           class="btn btn-secondary">返回后台</a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h4 class="mb-0"><i class="bi bi-list-check"></i> 我的评价记录</h4>
+        </div>
+        <div class="card-body">
+            <!-- 筛选条件 -->
+            <form class="row g-3 mb-4" method="get" action="/teacher/evaluation/list">
+                <div class="col-md-4">
+                    <select class="form-select" name="period">
+                        <option value="">全部周期</option>
+                        <option value="2024-2025-1" th:selected="${period == '2024-2025-1'}">2024-2025学年第一学期</option>
+                        <option value="2024-2025-2" th:selected="${period == '2024-2025-2'}">2024-2025学年第二学期</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> 查询
+                    </button>
+                </div>
+            </form>
+
+            <!-- 数据表格 -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>学生姓名</th>
+                            <th>学号</th>
+                            <th>评价周期</th>
+                            <th>耐力</th>
+                            <th>力量</th>
+                            <th>速度</th>
+                            <th>柔韧</th>
+                            <th>协调</th>
+                            <th>总分</th>
+                            <th>等级</th>
+                            <th>状态</th>
+                            <th>评价时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="eval : ${page.records}">
+                            <td th:text="${eval.studentName ?: '-'}">-</td>
+                            <td th:text="${eval.studentNo ?: '-'}">S2026001</td>
+                            <td th:text="${eval.evaluationPeriod}">2024-2025-1</td>
+                            <td th:text="${eval.enduranceScore}">85</td>
+                            <td th:text="${eval.strengthScore}">78</td>
+                            <td th:text="${eval.speedScore}">92</td>
+                            <td th:text="${eval.flexibilityScore}">70</td>
+                            <td th:text="${eval.coordinationScore}">88</td>
+                            <td>
+                                <span class="badge bg-success" th:text="${eval.totalScore}">83.20</span>
+                            </td>
+                            <td>
+                                <span th:if="${eval.gradeLevel == '优秀'}" class="badge bg-success" th:text="${eval.gradeLevel}">优秀</span>
+                                <span th:if="${eval.gradeLevel == '良好'}" class="badge bg-info" th:text="${eval.gradeLevel}">良好</span>
+                                <span th:if="${eval.gradeLevel == '中等'}" class="badge bg-primary" th:text="${eval.gradeLevel}">中等</span>
+                                <span th:if="${eval.gradeLevel == '及格'}" class="badge bg-warning" th:text="${eval.gradeLevel}">及格</span>
+                                <span th:if="${eval.gradeLevel == '不及格'}" class="badge bg-danger" th:text="${eval.gradeLevel}">不及格</span>
+                            </td>
+                            <td>
+                                <span th:if="${eval.status == 0}" class="badge bg-secondary">草稿</span>
+                                <span th:if="${eval.status == 1}" class="badge bg-success">已发布</span>
+                            </td>
+                            <td th:text="${#temporals.format(eval.createTime, 'yyyy-MM-dd')}">2026-05-10</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(page.records)}">
+                            <td colspan="13" class="text-center text-muted py-4">暂无评价记录</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            <nav th:if="${page.total > 0}">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${page.current == 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/teacher/evaluation/list(page=${page.current - 1}, period=${period})}">上一页</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">第 [[${page.current}]] / [[${page.pages}]] 页</span>
+                    </li>
+                    <li class="page-item" th:classappend="${page.current == page.pages} ? 'disabled'">
+                        <a class="page-link" th:href="@{/teacher/evaluation/list(page=${page.current + 1}, period=${period})}">下一页</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

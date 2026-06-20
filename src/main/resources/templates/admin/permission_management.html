@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>权限角色管理 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <!-- 页面标题 -->
+    <div class="mb-4">
+        <a href="/admin/index" class="btn btn-secondary">返回后台</a>
+        <h3 class="d-inline ms-3">🔐 权限角色管理</h3>
+    </div>
+
+    <!-- Tab切换 -->
+    <ul class="nav nav-tabs mb-4" id="permissionTabs">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#roleManagement">
+                <i class="bi bi-shield-lock"></i> 角色权限配置
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#dataPermission">
+                <i class="bi bi-database"></i> 数据权限配置
+            </a>
+        </li>
+    </ul>
+
+    <!-- Tab内容 -->
+    <div class="tab-content">
+        <!-- 角色权限配置 -->
+        <div class="tab-pane fade show active" id="roleManagement">
+            <div class="row">
+                <!-- 角色列表 -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">角色列表</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group" id="roleList">
+                                <!-- 数据将通过JavaScript动态加载 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 菜单权限配置 -->
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">菜单权限配置 - <span id="currentRoleName">请选择角色</span></h5>
+                            <button class="btn btn-primary btn-sm" onclick="saveRoleMenus()">
+                                <i class="bi bi-save"></i> 保存权限
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="menuTree">
+                                <p class="text-muted text-center">请先选择左侧角色</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据权限配置 -->
+        <div class="tab-pane fade" id="dataPermission">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">用户数据权限配置</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">选择用户</label>
+                            <select class="form-select" id="userSelect">
+                                <option value="">请选择用户</option>
+                                <option value="1">张老师 (教师)</option>
+                                <option value="2">李老师 (教师)</option>
+                                <option value="3">王老师 (教师)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">权限类型</label>
+                            <select class="form-select" id="permissionType">
+                                <option value="all">全部数据</option>
+                                <option value="class">指定班级</option>
+                                <option value="self">仅本人</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-primary d-block w-100" onclick="saveDataPermission()">
+                                <i class="bi bi-save"></i> 保存配置
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>权限说明：</strong><br>
+                        • <strong>全部数据</strong>：可以查看所有班级的数据<br>
+                        • <strong>指定班级</strong>：只能查看指定班级的数据<br>
+                        • <strong>仅本人</strong>：只能查看自己的数据
+                    </div>
+
+                    <div id="classSelection" style="display: none;">
+                        <label class="form-label">选择班级</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="1" id="class1">
+                            <label class="form-check-label" for="class1">22本科计科一班</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="2" id="class2">
+                            <label class="form-check-label" for="class2">22本科计科二班</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="3" id="class3">
+                            <label class="form-check-label" for="class3">22本科计科三班</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+    let currentRoleId = null;
+    let selectedMenuIds = [];
+
+    $(document).ready(function() {
+        loadRoles();
+        
+        // 权限类型切换
+        $('#permissionType').change(function() {
+            if ($(this).val() === 'class') {
+                $('#classSelection').show();
+            } else {
+                $('#classSelection').hide();
+            }
+        });
+    });
+
+    // 加载角色列表
+    function loadRoles() {
+        $.get('/admin/permission/roles', function(result) {
+            if (result.success) {
+                const roles = result.data;
+                let html = '';
+                
+                roles.forEach(role => {
+                    html += `
+                        <a href="#" class="list-group-item list-group-item-action" onclick="selectRole(${role.roleId}, '${role.roleName}')">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">${role.roleName}</h6>
+                                <small class="text-muted">${role.userCount}人</small>
+                            </div>
+                            <p class="mb-1 small text-muted">${role.description}</p>
+                            <code>${role.roleCode}</code>
+                        </a>
+                    `;
+                });
+                
+                $('#roleList').html(html);
+            }
+        });
+    }
+
+    // 选择角色
+    function selectRole(roleId, roleName) {
+        currentRoleId = roleId;
+        $('#currentRoleName').text(roleName);
+        loadRoleMenus(roleId);
+    }
+
+    // 加载角色菜单
+    function loadRoleMenus(roleId) {
+        $.get(`/admin/permission/role/${roleId}/menus`, function(result) {
+            if (result.success) {
+                const menus = result.data;
+                selectedMenuIds = menus.filter(m => m.checked).map(m => m.menuId);
+                
+                let html = '<div class="form-check-list">';
+                menus.forEach(menu => {
+                    html += `
+                        <div class="form-check mb-2">
+                            <input class="form-check-input menu-checkbox" type="checkbox" 
+                                   value="${menu.menuId}" 
+                                   id="menu${menu.menuId}"
+                                   ${menu.checked ? 'checked' : ''}>
+                            <label class="form-check-label" for="menu${menu.menuId}">
+                                ${menu.menuName}
+                                <small class="text-muted">(${menu.url})</small>
+                            </label>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                $('#menuTree').html(html);
+                
+                // 绑定复选框事件
+                $('.menu-checkbox').change(function() {
+                    const menuId = parseInt($(this).val());
+                    if ($(this).is(':checked')) {
+                        if (!selectedMenuIds.includes(menuId)) {
+                            selectedMenuIds.push(menuId);
+                        }
+                    } else {
+                        selectedMenuIds = selectedMenuIds.filter(id => id !== menuId);
+                    }
+                });
+            }
+        });
+    }
+
+    // 保存角色菜单权限
+    function saveRoleMenus() {
+        if (!currentRoleId) {
+            alert('请先选择角色');
+            return;
+        }
+        
+        $.ajax({
+            url: `/admin/permission/role/${currentRoleId}/menus`,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(selectedMenuIds),
+            success: function(result) {
+                if (result.success) {
+                    alert('保存成功');
+                } else {
+                    alert('保存失败：' + result.message);
+                }
+            },
+            error: function() {
+                alert('保存失败');
+            }
+        });
+    }
+
+    // 保存数据权限
+    function saveDataPermission() {
+        const userId = $('#userSelect').val();
+        const permissionType = $('#permissionType').val();
+        
+        if (!userId) {
+            alert('请选择用户');
+            return;
+        }
+        
+        let classIds = [];
+        if (permissionType === 'class') {
+            $('.form-check-input:checked').each(function() {
+                classIds.push(parseInt($(this).val()));
+            });
+            
+            if (classIds.length === 0) {
+                alert('请至少选择一个班级');
+                return;
+            }
+        }
+        
+        $.ajax({
+            url: `/admin/permission/user/${userId}/data-permission`,
+            method: 'POST',
+            data: {
+                permissionType: permissionType,
+                classIds: classIds
+            },
+            success: function(result) {
+                if (result.success) {
+                    alert('保存成功');
+                } else {
+                    alert('保存失败：' + result.message);
+                }
+            },
+            error: function() {
+                alert('保存失败');
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

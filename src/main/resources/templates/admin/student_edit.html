@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑学生 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .form-container {
+            background: linear-gradient(135deg, #f6f8ff 0%, #f0f4ff 100%);
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid #e5e7eb;
+        }
+        .form-title {
+            color: #10b981;
+            font-weight: 700;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #10b981;
+        }
+        .required::after {
+            content: " *";
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+
+<div class="operation-panel">
+    <h2 class="operation-title">编辑学生</h2>
+    <div class="mb-4">
+        <a href="/admin/student/manage" class="btn btn-secondary">返回列表</a>
+        <a href="/admin/index" class="btn btn-outline-secondary">返回后台</a>
+    </div>
+
+    <div class="form-container">
+        <h4 class="form-title">学生信息编辑</h4>
+
+        <form id="studentForm" onsubmit="submitForm(event)">
+            <!-- 隐藏字段：用户ID、学生ID -->
+            <input type="hidden" id="userId" th:value="${user.id}">
+            <input type="hidden" id="studentId" th:value="${student.id}">
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-3" style="color: #10b981;">账号信息</h5>
+                    <div class="mb-3">
+                        <label class="form-label required">用户名</label>
+                        <input type="text" class="form-control" id="username" name="username" required
+                               th:value="${user.username}" placeholder="请输入用户名">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label required">真实姓名</label>
+                        <input type="text" class="form-control" id="realName" name="realName" required
+                               th:value="${user.realName}" placeholder="请输入真实姓名">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">手机号</label>
+                        <input type="tel" class="form-control" id="phone" name="phone"
+                               th:value="${user.phone}" placeholder="请输入手机号">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               th:value="${user.email}" placeholder="请输入邮箱">
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <h5 class="mb-3" style="color: #10b981;">学生信息</h5>
+                    <div class="mb-3">
+                        <label class="form-label required">所属班级</label>
+                        <select class="form-control" id="classId" name="classId" required>
+                            <option value="">请选择班级</option>
+                            <option th:each="cls : ${classList}" th:value="${cls.id}"
+                                    th:selected="${cls.id == student.classId}"
+                                    th:text="${cls.grade + '-' + cls.className}"></option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">性别</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="gender" id="gender1" value="1"
+                                       th:checked="${student.gender == 1}">
+                                <label class="form-check-label" for="gender1">男</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="gender" id="gender2" value="2"
+                                       th:checked="${student.gender == 2}">
+                                <label class="form-check-label" for="gender2">女</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="gender" id="gender0" value="0"
+                                       th:checked="${student.gender == 0}">
+                                <label class="form-check-label" for="gender0">未知</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">出生日期</label>
+                        <input type="date" class="form-control" id="birthDate" name="birthDate"
+                               th:value="${student.birthDate}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-4">
+                <div class="d-flex">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-info-circle-fill"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="alert-heading">提示信息</h6>
+                        <ul class="mb-0">
+                            <li>修改信息不会重置密码</li>
+                            <li>学生账号状态需在用户管理中调整</li>
+                            <li>带 <span class="text-danger">*</span> 号的为必填项</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3 mt-4">
+                <button type="submit" class="btn btn-success px-5" id="submitBtn">
+                    <span id="submitText">保存修改</span>
+                    <span id="loadingSpinner" class="loading-spinner" style="display: none; margin-left: 10px;"></span>
+                </button>
+                <a href="/admin/student/manage" class="btn btn-secondary px-5">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // 表单提交
+    function submitForm(event) {
+        event.preventDefault();
+
+        // 校验班级是否选择
+        const classId = document.getElementById('classId').value;
+        if (!classId) {
+            alert('请选择所属班级！');
+            return;
+        }
+
+        const formData = {
+            user: {
+                id: document.getElementById('userId').value,
+                username: document.getElementById('username').value,
+                realName: document.getElementById('realName').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                status: 1
+            },
+            student: {
+                id: document.getElementById('studentId').value,
+                classId: classId,
+                gender: document.querySelector('input[name="gender"]:checked').value,
+                birthDate: document.getElementById('birthDate').value
+            }
+        };
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        document.getElementById('submitText').textContent = '保存中...';
+        document.getElementById('loadingSpinner').style.display = 'inline-block';
+
+        fetch('/admin/student/edit', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('修改成功！');
+                    window.location.href = '/admin/student/manage';
+                } else {
+                    alert('修改失败：' + data.message);
+                }
+            })
+            .catch(error => alert('请求失败：' + error.message))
+            .finally(() => {
+                submitBtn.disabled = false;
+                document.getElementById('submitText').textContent = '保存修改';
+                document.getElementById('loadingSpinner').style.display = 'none';
+            });
+    }
+</script>
+</body>
+</html>

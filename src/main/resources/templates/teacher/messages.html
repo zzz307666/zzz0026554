@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消息中心 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .message-item {
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .message-item:hover {
+            background-color: #f8f9fa;
+        }
+        .message-unread {
+            border-left: 4px solid #0d6efd;
+            background-color: #f0f7ff;
+        }
+        .message-type-badge {
+            font-size: 12px;
+            padding: 4px 8px;
+        }
+        .contact-item {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .contact-item:hover {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .nav-tabs .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <!-- 页面标题 -->
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <a href="/teacher/index" class="btn btn-secondary">返回教师端</a>
+            <h3 class="d-inline ms-3">📬 消息中心</h3>
+            <span class="badge bg-danger ms-2" th:if="${unreadCount > 0}" th:text="${unreadCount} + ' 条未读'"></span>
+        </div>
+        <button class="btn btn-outline-primary" onclick="markAllAsRead()">
+            <i class="bi bi-check-all"></i> 全部标记已读
+        </button>
+    </div>
+
+    <div class="row">
+        <!-- 左侧：联系人列表 -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-users"></i> 联系人</h5>
+                </div>
+                <div class="card-body p-0">
+                    <!-- 联系人标签 -->
+                    <ul class="nav nav-tabs nav-fill" id="contactTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" id="studentTab" onclick="loadContacts('student')">
+                                <i class="bi bi-graduation-cap"></i> 学生
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" id="teacherTab" onclick="loadContacts('teacher')">
+                                <i class="bi bi-person-badge"></i> 教师
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <!-- 联系人列表 -->
+                    <div class="mt-3 overflow-y-auto" style="max-height: 400px;" id="contactList">
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-users" style="font-size: 48px;"></i>
+                            <p class="mt-2">点击标签加载联系人</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：消息列表 -->
+        <div class="col-md-9">
+            <!-- 消息筛选 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <select class="form-select" id="messageType">
+                                <option value="">全部类型</option>
+                                <option value="system">系统公告</option>
+                                <option value="evaluation">评价通知</option>
+                                <option value="audit">审核提醒</option>
+                                <option value="points">积分变动</option>
+                                <option value="reminder">运动提醒</option>
+                                <option value="student">学生消息</option>
+                                <option value="teacher">教师消息</option>
+                                <option value="reply">回复消息</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="readStatus">
+                                <option value="">全部状态</option>
+                                <option value="unread">未读</option>
+                                <option value="read">已读</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button class="btn btn-primary" onclick="filterMessages()">
+                                <i class="bi bi-search"></i> 筛选
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="resetFilter()">
+                                <i class="bi bi-arrow-counterclockwise"></i> 重置
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 消息列表 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0" id="chatHeader"><i class="bi bi-envelope"></i> 消息列表</h5>
+                        <div>
+                            <span class="badge bg-info me-2" id="chatFilterBadge" style="display: none;">聊天模式</span>
+                            <button class="btn btn-xs btn-outline-secondary" id="clearChatFilter" onclick="clearChatFilter()" style="display: none;">清除筛选</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="messageList">
+                        <!-- 消息将通过JavaScript动态加载 -->
+                    </div>
+                    
+                    <!-- 分页 -->
+                    <nav aria-label="Page navigation" class="mt-3 px-3">
+                        <ul class="pagination justify-content-center" id="pagination">
+                            <!-- 分页将通过JavaScript动态生成 -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 发送消息模态框 -->
+<div class="modal fade" id="sendMessageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📤 发送消息</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="receiverId">
+                <input type="hidden" id="receiverType">
+                <div class="mb-3">
+                    <label class="form-label">接收人：</label>
+                    <input type="text" class="form-control" id="receiverName" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">消息标题：</label>
+                    <input type="text" class="form-control" id="msgTitle" placeholder="请输入消息标题">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">消息内容：</label>
+                    <textarea class="form-control" id="msgContent" rows="4" placeholder="请输入消息内容"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="sendMessageBtn">
+                    <i class="bi bi-send"></i> 发送消息
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 消息详情模态框 -->
+<div class="modal fade" id="messageDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageTitle">消息详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <span class="badge bg-primary message-type-badge" id="messageTypeBadge">系统公告</span>
+                    <small class="text-muted ms-2" id="messageTime">2026-05-24 10:00:00</small>
+                </div>
+                <hr>
+                <div id="messageContent" style="min-height: 200px;">
+                    <!-- 消息内容 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-danger" id="deleteMessageBtn" onclick="deleteCurrentMessage()">
+                    <i class="bi bi-trash"></i> 删除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    let currentPage = 1;
+    let currentMessageId = null;
+    let currentReceiverId = null;
+    let currentReceiverName = null;
+    let currentReceiverType = null;
+    let currentChatContactId = null;
+    let currentChatContactName = null;
+    let currentChatContactType = null;
+    let detailModal;
+    let sendModal;
+
+    $(document).ready(function() {
+        detailModal = new bootstrap.Modal(document.getElementById('messageDetailModal'));
+        sendModal = new bootstrap.Modal(document.getElementById('sendMessageModal'));
+        loadMessages(1);
+        loadContacts('student');
+        
+        $('#sendMessageBtn').click(function() {
+            sendMessage();
+        });
+    });
+
+    // 加载消息列表
+    function loadMessages(page) {
+        currentPage = page;
+        $.get(`/teacher/messages/list?page=${page}`, function(result) {
+            if (result.success) {
+                renderMessageList(result.data);
+                renderPagination(result.page);
+            }
+        });
+    }
+
+    // 渲染消息列表
+    function renderMessageList(messages) {
+        const container = $('#messageList');
+        container.empty();
+        
+        if (messages.length === 0) {
+            container.html('<div class="text-center text-muted py-8"><i class="bi bi-inbox" style="font-size: 48px;"></i><p class="mt-2">暂无消息</p></div>');
+            return;
+        }
+        
+        messages.forEach(msg => {
+            const isUnread = (msg.isRead || msg.is_read) === 0;
+            const createTime = msg.createTime || msg.create_time || '';
+            const messageType = msg.type || msg.messageType || 'SYSTEM';
+            const isSent = msg.isSent === true || msg.is_sent === true;
+            const senderName = msg.senderName || msg.sender_name || (isSent ? '我' : '未知');
+            
+            const item = `
+                <div class="list-group-item message-item ${isUnread ? 'message-unread' : ''}" onclick="viewMessage(${msg.id})">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge ${isSent ? 'bg-primary' : 'bg-secondary'}">${isSent ? '我发送' : '收到'}</span>
+                                <span class="text-sm text-muted">${senderName}</span>
+                            </div>
+                            <h6 class="font-bold mt-1">${msg.title || '无标题'}</h6>
+                            <p class="text-sm text-muted">${truncateContent(msg.content || '', 50)}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="badge ${getTypeBadgeClass(messageType)}">${getTypeName(messageType)}</span>
+                            <small class="text-muted d-block mt-1">${formatDateTime(createTime)}</small>
+                        </div>
+                    </div>
+                    ${isUnread && !isSent ? `<button class="btn btn-xs btn-primary mt-2" onclick="event.stopPropagation(); markAsRead(${msg.id})">标记已读</button>` : ''}
+                </div>
+            `;
+            container.append(item);
+        });
+    }
+
+    // 渲染分页
+    function renderPagination(pageInfo) {
+        const container = $('#pagination');
+        container.empty();
+        
+        if (pageInfo.pages <= 1) return;
+        
+        const current = pageInfo.current;
+        const pages = pageInfo.pages;
+        
+        // 上一页
+        if (current > 1) {
+            container.append(`<li class="page-item"><button class="page-link" onclick="loadMessages(${current - 1})">上一页</button></li>`);
+        }
+        
+        // 页码
+        for (let i = 1; i <= pages; i++) {
+            if (i === current) {
+                container.append(`<li class="page-item active"><button class="page-link">${i}</button></li>`);
+            } else {
+                container.append(`<li class="page-item"><button class="page-link" onclick="loadMessages(${i})">${i}</button></li>`);
+            }
+        }
+        
+        // 下一页
+        if (current < pages) {
+            container.append(`<li class="page-item"><button class="page-link" onclick="loadMessages(${current + 1})">下一页</button></li>`);
+        }
+    }
+
+    // 加载联系人列表
+    function loadContacts(type) {
+        $.get('/teacher/messages/contacts', function(result) {
+            if (result.success) {
+                const container = $('#contactList');
+                container.empty();
+                
+                let contacts = [];
+                if (type === 'student') {
+                    contacts = result.data.students;
+                } else {
+                    contacts = result.data.teachers;
+                }
+                
+                if (contacts.length === 0) {
+                    container.html(`<div class="text-center text-muted py-4">暂无${type === 'student' ? '学生' : '教师'}</div>`);
+                    return;
+                }
+                
+                contacts.forEach(contact => {
+                    const item = `
+                        <div class="contact-item p-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="font-bold">${contact.name}</div>
+                                <div class="text-sm text-muted">${contact.type === 'student' ? contact.no : contact.no + '教师'}</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewChat(${contact.id}, '${contact.name}', '${contact.type}')">
+                                    <i class="bi bi-eye"></i> 查看
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="openSendModal(${contact.id}, '${contact.name}', '${contact.type}')">
+                                    <i class="bi bi-message-square"></i> 发消息
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.append(item);
+                });
+            }
+        });
+        
+        // 更新标签状态
+        $('#studentTab').removeClass('active');
+        $('#teacherTab').removeClass('active');
+        if (type === 'student') {
+            $('#studentTab').addClass('active');
+        } else {
+            $('#teacherTab').addClass('active');
+        }
+    }
+
+    // 打开发送消息模态框
+    function openSendModal(id, name, type) {
+        currentReceiverId = id;
+        currentReceiverName = name;
+        currentReceiverType = type;
+        
+        $('#receiverId').val(id);
+        $('#receiverName').val(name);
+        $('#receiverType').val(type);
+        $('#msgTitle').val('');
+        $('#msgContent').val('');
+        
+        sendModal.show();
+    }
+
+    // 发送消息
+    function sendMessage() {
+        const title = $('#msgTitle').val().trim();
+        const content = $('#msgContent').val().trim();
+        
+        if (!currentReceiverId || !currentReceiverType) {
+            alert('请先选择接收人');
+            return;
+        }
+        
+        if (!title) {
+            alert('请输入消息标题');
+            return;
+        }
+        if (!content) {
+            alert('请输入消息内容');
+            return;
+        }
+        
+        console.log('发送消息:', { receiverId: currentReceiverId, receiverType: currentReceiverType, title, content });
+        
+        $.post('/teacher/messages/send', {
+            receiverId: currentReceiverId,
+            receiverType: currentReceiverType,
+            title: title,
+            content: content
+        }, function(result) {
+            if (result.success) {
+                alert('消息发送成功！');
+                sendModal.hide();
+                loadMessages(1);
+            } else {
+                alert('发送失败：' + result.message);
+            }
+        });
+    }
+
+    // 查看与联系人的聊天记录
+    function viewChat(contactId, contactName, contactType) {
+        currentChatContactId = contactId;
+        currentChatContactName = contactName;
+        currentChatContactType = contactType;
+        
+        $('#chatHeader').html(`<i class="bi bi-chat"></i> 与 ${contactName} 的对话`);
+        $('#chatFilterBadge').show();
+        $('#clearChatFilter').show();
+        
+        loadMessagesWithContact(1, contactId);
+    }
+
+    function loadMessagesWithContact(page, contactId) {
+        currentPage = page;
+        $.get(`/teacher/messages/chat?page=${page}&contactId=${contactId}`, function(result) {
+            if (result.success) {
+                renderChatMessages(result.data);
+                renderPagination(result.page);
+            }
+        });
+    }
+
+    function renderChatMessages(messages) {
+        const container = $('#messageList');
+        container.empty();
+        
+        if (messages.length === 0) {
+            container.html('<div class="text-center text-muted py-8"><i class="bi bi-inbox" style="font-size: 48px;"></i><p class="mt-2">暂无消息</p></div>');
+            return;
+        }
+        
+        messages.forEach(msg => {
+            const isSent = msg.isSent === true || msg.is_sent === true;
+            const createTime = msg.createTime || msg.create_time || '';
+            const item = `
+                <div class="chat-message ${isSent ? 'chat-sent' : 'chat-received'}">
+                    <div class="message-bubble">
+                        <h6 class="font-bold">${msg.title || '无标题'}</h6>
+                        <p>${msg.content || ''}</p>
+                        <small class="text-muted float-end">${formatDateTime(createTime)}</small>
+                    </div>
+                </div>
+            `;
+            container.append(item);
+        });
+        
+        container.scrollTop(container[0].scrollHeight);
+    }
+
+    function clearChatFilter() {
+        currentChatContactId = null;
+        currentChatContactName = null;
+        currentChatContactType = null;
+        
+        $('#chatHeader').html('<i class="bi bi-envelope"></i> 消息列表');
+        $('#chatFilterBadge').hide();
+        $('#clearChatFilter').hide();
+        
+        loadMessages(1);
+    }
+
+    // 查看消息详情
+    function viewMessage(id) {
+        currentMessageId = id;
+        
+        $.get(`/teacher/messages/detail/${id}`, function(result) {
+            if (result.success) {
+                const message = result.data;
+                $('#messageTitle').text(message.title);
+                $('#messageTypeBadge').text(getTypeName(message.type));
+                $('#messageTypeBadge').removeClass('bg-primary bg-success bg-warning bg-info bg-danger');
+                $('#messageTypeBadge').addClass(getTypeBadgeClass(message.type));
+                $('#messageTime').text(message.createTime);
+                $('#messageContent').html(message.content);
+                
+                detailModal.show();
+                
+                // 更新已读状态
+                const messageItem = document.querySelector(`[onclick*="viewMessage(${id})"]`);
+                if (messageItem) {
+                    messageItem.classList.remove('message-unread');
+                    const badge = messageItem.querySelector('.badge.bg-danger');
+                    if (badge) badge.remove();
+                    const markBtn = messageItem.querySelector('button');
+                    if (markBtn) markBtn.remove();
+                }
+            }
+        });
+    }
+
+    // 标记为已读
+    function markAsRead(id, event) {
+        event.stopPropagation();
+        
+        $.post(`/teacher/messages/mark-read/${id}`, function(result) {
+            if (result.success) {
+                loadMessages(currentPage);
+            }
+        });
+    }
+
+    // 标记全部已读
+    function markAllAsRead() {
+        $.post('/teacher/messages/mark-all-read', function(result) {
+            if (result.success) {
+                loadMessages(1);
+            }
+        });
+    }
+
+    // 删除消息
+    function deleteCurrentMessage() {
+        if (!currentMessageId) return;
+        
+        if (!confirm('确定要删除这条消息吗？')) return;
+        
+        $.post(`/teacher/messages/delete/${currentMessageId}`, function(result) {
+            if (result.success) {
+                detailModal.hide();
+                loadMessages(currentPage);
+            } else {
+                alert('删除失败：' + result.message);
+            }
+        });
+    }
+
+    // 筛选消息
+    function filterMessages() {
+        const type = $('#messageType').val();
+        const status = $('#readStatus').val();
+        $.get(`/teacher/messages/list?page=1&type=${type}&status=${status}`, function(result) {
+            if (result.success) {
+                renderMessageList(result.data);
+                renderPagination(result.page);
+            }
+        });
+    }
+
+    // 重置筛选
+    function resetFilter() {
+        $('#messageType').val('');
+        $('#readStatus').val('');
+        loadMessages(1);
+    }
+
+    // 获取消息类型名称
+    function getTypeName(type) {
+        const types = {
+            'SYSTEM': '系统公告',
+            'EVALUATION': '评价通知',
+            'AUDIT': '审核提醒',
+            'POINTS': '积分变动',
+            'TEACHER': '教师消息',
+            'REPLY': '回复消息'
+        };
+        return types[type] || type;
+    }
+
+    function formatDateTime(dateTime) {
+        if (!dateTime) return '';
+        const date = new Date(dateTime);
+        if (isNaN(date.getTime())) return dateTime;
+        
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+    }
+
+    // 获取消息类型徽章样式
+    function getTypeBadgeClass(type) {
+        const classes = {
+            'SYSTEM': 'bg-primary',
+            'EVALUATION': 'bg-success',
+            'AUDIT': 'bg-warning',
+            'POINTS': 'bg-info',
+            'TEACHER': 'bg-secondary',
+            'REPLY': 'bg-success'
+        };
+        return classes[type] || 'bg-secondary';
+    }
+
+    // 截断内容
+    function truncateContent(content, length) {
+        if (!content) return '';
+        const text = content.replace(/<[^>]*>/g, '');
+        return text.length > length ? text.substring(0, length) + '...' : text;
+    }
+</script>
+</body>
+</html>

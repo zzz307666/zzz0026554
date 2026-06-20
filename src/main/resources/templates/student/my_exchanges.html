@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的兑换记录 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div class="container mt-4">
+    <div class="mb-4">
+        <a href="/student/exchange/shop" class="btn btn-secondary">返回积分商城</a>
+        <h3 class="d-inline ms-3">📋 我的兑换记录</h3>
+    </div>
+
+    <!-- 兑换记录列表 -->
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>奖品名称</th>
+                            <th>消耗积分</th>
+                            <th>兑换时间</th>
+                            <th>状态</th>
+                            <th>领取时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="exchange : ${page.records}">
+                            <td>
+                                <strong th:text="${exchange.giftName}">运动水杯</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-coin"></i> 
+                                    <span th:text="${exchange.pointsCost}">50</span>
+                                </span>
+                            </td>
+                            <td th:text="${#temporals.format(exchange.exchangeTime, 'yyyy-MM-dd HH:mm')}">2026-05-12 10:30</td>
+                            <td>
+                                <span th:if="${exchange.status == 0}" class="badge bg-info">待领取</span>
+                                <span th:if="${exchange.status == 1}" class="badge bg-success">已领取</span>
+                                <span th:if="${exchange.status == 2}" class="badge bg-secondary">已取消</span>
+                            </td>
+                            <td>
+                                <span th:if="${exchange.receiveTime != null}" 
+                                      th:text="${#temporals.format(exchange.receiveTime, 'yyyy-MM-dd HH:mm')}">-</span>
+                                <span th:if="${exchange.receiveTime == null}" class="text-muted">-</span>
+                            </td>
+                            <td>
+                                <button th:if="${exchange.status == 0}" 
+                                        class="btn btn-sm btn-success"
+                                        th:onclick="'confirmReceive(' + ${exchange.id} + ')'">
+                                    <i class="bi bi-check-circle"></i> 确认领取
+                                </button>
+                                <span th:if="${exchange.status != 0}" class="text-muted">已完成</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(page.records)}">
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                                <p class="mt-2">暂无兑换记录</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            <nav th:if="${page.total > 0}">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${page.current == 1} ? 'disabled'">
+                        <a class="page-link" 
+                           th:href="@{/student/exchange/my-orders(page=${page.current - 1})}">上一页</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">第 [[${page.current}]] / [[${page.pages}]] 页，共 [[${page.total}]] 条</span>
+                    </li>
+                    <li class="page-item" th:classappend="${page.current == page.pages} ? 'disabled'">
+                        <a class="page-link" 
+                           th:href="@{/student/exchange/my-orders(page=${page.current + 1})}">下一页</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+function confirmReceive(exchangeId) {
+    if (!confirm('确认已领取该奖品吗？')) {
+        return;
+    }
+    
+    fetch('/student/exchange/confirm-receive/' + exchangeId, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('领取成功！');
+            window.location.reload();
+        } else {
+            alert('领取失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误，请稍后重试');
+        console.error('领取异常:', error);
+    });
+}
+</script>
+</body>
+</html>

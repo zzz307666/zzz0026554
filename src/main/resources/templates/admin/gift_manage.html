@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奖品管理 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <div class="mb-4">
+        <a href="/admin/index" class="btn btn-secondary">返回后台</a>
+        <h3 class="d-inline ms-3">🎁 奖品管理</h3>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="mb-3">
+        <a href="/admin/exchange/gift/add" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> 添加奖品
+        </a>
+    </div>
+
+    <!-- 奖品列表 -->
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>奖品名称</th>
+                            <th>分类</th>
+                            <th>所需积分</th>
+                            <th>库存</th>
+                            <th>状态</th>
+                            <th>排序</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="gift : ${page.records}">
+                            <td th:text="${gift.id}">1</td>
+                            <td>
+                                <strong th:text="${gift.giftName}">运动水杯</strong>
+                                <br>
+                                <small class="text-muted" th:text="${gift.description}">描述</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info" th:text="${gift.category}">生活用品</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-coin"></i>
+                                    <span th:text="${gift.pointsCost}">50</span>
+                                </span>
+                            </td>
+                            <td>
+                                <span th:class="${gift.stock > 10 ? 'text-success' : (gift.stock > 0 ? 'text-warning' : 'text-danger')}"
+                                      th:text="${gift.stock}">100</span>
+                            </td>
+                            <td>
+                                <span th:if="${gift.status == 1}" class="badge bg-success">上架</span>
+                                <span th:if="${gift.status == 0}" class="badge bg-secondary">下架</span>
+                            </td>
+                            <td th:text="${gift.sortOrder}">1</td>
+                            <td>
+                                <a th:href="@{/admin/exchange/gift/edit/{id}(id=${gift.id})}" 
+                                   class="btn btn-sm btn-primary me-1">
+                                    <i class="bi bi-pencil"></i> 编辑
+                                </a>
+                                <button class="btn btn-sm btn-outline-warning me-1"
+                                        th:onclick="'toggleStatus(' + ${gift.id} + ')'">
+                                    <i class="bi" th:classappend="${gift.status == 1 ? 'bi-toggle-on' : 'bi-toggle-off'}"></i>
+                                    <span th:text="${gift.status == 1 ? '下架' : '上架'}"></span>
+                                </button>
+                                <button class="btn btn-sm btn-danger"
+                                        th:onclick="'deleteGift(' + ${gift.id} + ')'">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(page.records)}">
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                                <p class="mt-2">暂无奖品数据</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            <nav th:if="${page.total > 0}">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${page.current == 1} ? 'disabled'">
+                        <a class="page-link" 
+                           th:href="@{/admin/exchange/gifts(page=${page.current - 1})}">上一页</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">第 [[${page.current}]] / [[${page.pages}]] 页，共 [[${page.total}]] 条</span>
+                    </li>
+                    <li class="page-item" th:classappend="${page.current == page.pages} ? 'disabled'">
+                        <a class="page-link" 
+                           th:href="@{/admin/exchange/gifts(page=${page.current + 1})}">下一页</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+// 切换奖品状态
+function toggleStatus(giftId) {
+    if (!confirm('确定要切换该奖品的上下架状态吗？')) {
+        return;
+    }
+    
+    fetch('/admin/exchange/gift/toggle-status/' + giftId, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('操作成功！');
+            window.location.reload();
+        } else {
+            alert('操作失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误，请稍后重试');
+        console.error('操作异常:', error);
+    });
+}
+
+// 删除奖品
+function deleteGift(giftId) {
+    if (!confirm('确定要删除该奖品吗？此操作不可恢复！')) {
+        return;
+    }
+    
+    fetch('/admin/exchange/gift/delete/' + giftId, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('删除成功！');
+            window.location.reload();
+        } else {
+            alert('删除失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误，请稍后重试');
+        console.error('删除异常:', error);
+    });
+}
+</script>
+</body>
+</html>

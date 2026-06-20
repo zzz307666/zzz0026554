@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据导入导出 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .import-card {
+            transition: all 0.3s;
+            border-left: 4px solid #4f46e5;
+        }
+        .import-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .drop-zone:hover {
+            border-color: #4f46e5;
+            background-color: #f8f9fa;
+        }
+        .drop-zone.dragover {
+            border-color: #4f46e5;
+            background-color: #e7e9ff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <!-- 页面标题 -->
+    <div class="mb-4">
+        <a href="/admin/index" class="btn btn-secondary">返回后台</a>
+        <h3 class="d-inline ms-3">📊 数据导入导出</h3>
+    </div>
+
+    <!-- 功能选项卡 -->
+    <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="import-tab" data-bs-toggle="tab" data-bs-target="#import" type="button">
+                <i class="bi bi-upload"></i> 数据导入
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="export-tab" data-bs-toggle="tab" data-bs-target="#export" type="button">
+                <i class="bi bi-download"></i> 数据导出
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="template-tab" data-bs-toggle="tab" data-bs-target="#template" type="button">
+                <i class="bi bi-file-earmark"></i> 下载模板
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="myTabContent">
+        <!-- 数据导入 -->
+        <div class="tab-pane fade show active" id="import">
+            <div class="row">
+                <!-- 导入学生 -->
+                <div class="col-md-6 mb-4">
+                    <div class="card import-card h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-people"></i> 导入学生信息</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="drop-zone" id="studentDropZone" onclick="document.getElementById('studentFile').click()">
+                                <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #6c757d;"></i>
+                                <p class="mt-3 mb-0">点击或拖拽Excel文件到此处</p>
+                                <small class="text-muted">支持 .xlsx, .xls 格式</small>
+                                <input type="file" id="studentFile" accept=".xlsx,.xls" style="display:none" onchange="handleFileSelect(this, 'student')">
+                            </div>
+                            
+                            <div class="mt-3">
+                                <h6>Excel格式要求：</h6>
+                                <ul class="small text-muted">
+                                    <li>第1行：表头（学号*、姓名*、班级*、性别、手机号、邮箱）</li>
+                                    <li>第2行起：数据行</li>
+                                    <li>带*号为必填项</li>
+                                </ul>
+                            </div>
+
+                            <button class="btn btn-primary w-100 mt-3" onclick="importData('students')">
+                                <i class="bi bi-upload"></i> 开始导入
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 导入教师 -->
+                <div class="col-md-6 mb-4">
+                    <div class="card import-card h-100">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="bi bi-person-badge"></i> 导入教师信息</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="drop-zone" id="teacherDropZone" onclick="document.getElementById('teacherFile').click()">
+                                <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #6c757d;"></i>
+                                <p class="mt-3 mb-0">点击或拖拽Excel文件到此处</p>
+                                <small class="text-muted">支持 .xlsx, .xls 格式</small>
+                                <input type="file" id="teacherFile" accept=".xlsx,.xls" style="display:none" onchange="handleFileSelect(this, 'teacher')">
+                            </div>
+                            
+                            <div class="mt-3">
+                                <h6>Excel格式要求：</h6>
+                                <ul class="small text-muted">
+                                    <li>第1行：表头（工号*、姓名*、手机号、邮箱）</li>
+                                    <li>第2行起：数据行</li>
+                                    <li>带*号为必填项</li>
+                                </ul>
+                            </div>
+
+                            <button class="btn btn-success w-100 mt-3" onclick="importData('teachers')">
+                                <i class="bi bi-upload"></i> 开始导入
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 导入结果 -->
+            <div class="card" id="importResult" style="display:none;">
+                <div class="card-header">
+                    <h5 class="mb-0">导入结果</h5>
+                </div>
+                <div class="card-body">
+                    <div id="resultContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据导出 -->
+        <div class="tab-pane fade" id="export">
+            <div class="row">
+                <!-- 导出运动记录 -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-file-earmark-spreadsheet" style="font-size: 3rem; color: #0d6efd;"></i>
+                            <h5 class="mt-3">运动记录报表</h5>
+                            <p class="text-muted small">导出学生运动打卡记录</p>
+                            <button class="btn btn-outline-primary" onclick="exportData('sport-records')">
+                                <i class="bi bi-download"></i> 导出
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 导出积分明细 -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-coin" style="font-size: 3rem; color: #ffc107;"></i>
+                            <h5 class="mt-3">积分明细报表</h5>
+                            <p class="text-muted small">导出学生积分获得记录</p>
+                            <button class="btn btn-outline-warning" onclick="exportData('points')">
+                                <i class="bi bi-download"></i> 导出
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 导出评价结果 -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-clipboard-check" style="font-size: 3rem; color: #198754;"></i>
+                            <h5 class="mt-3">评价结果报表</h5>
+                            <p class="text-muted small">导出五维评价结果</p>
+                            <button class="btn btn-outline-success" onclick="exportData('evaluations')">
+                                <i class="bi bi-download"></i> 导出
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 下载模板 -->
+        <div class="tab-pane fade" id="template">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5><i class="bi bi-people"></i> 学生信息导入模板</h5>
+                            <p class="text-muted">包含字段：学号、姓名、班级、性别、手机号、邮箱</p>
+                            <a href="/admin/data/template/students" class="btn btn-primary">
+                                <i class="bi bi-download"></i> 下载模板
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5><i class="bi bi-person-badge"></i> 教师信息导入模板</h5>
+                            <p class="text-muted">包含字段：工号、姓名、手机号、邮箱</p>
+                            <a href="/admin/data/template/teachers" class="btn btn-success">
+                                <i class="bi bi-download"></i> 下载模板
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <h6><i class="bi bi-info-circle"></i> 使用说明</h6>
+                <ol class="mb-0">
+                    <li>下载对应的Excel模板</li>
+                    <li>按照模板格式填写数据（注意：带*号为必填项）</li>
+                    <li>保存为 .xlsx 或 .xls 格式</li>
+                    <li>切换到"数据导入"标签页，上传文件</li>
+                    <li>等待导入完成，查看导入结果</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+    let selectedFiles = {
+        student: null,
+        teacher: null
+    };
+
+    // 处理文件选择
+    function handleFileSelect(input, type) {
+        const file = input.files[0];
+        if (file) {
+            selectedFiles[type] = file;
+            
+            // 更新显示
+            const dropZone = document.getElementById(type + 'DropZone');
+            dropZone.innerHTML = `
+                <i class="bi bi-file-earmark-excel" style="font-size: 3rem; color: #198754;"></i>
+                <p class="mt-3 mb-0">${file.name}</p>
+                <small class="text-muted">${(file.size / 1024).toFixed(2)} KB</small>
+            `;
+        }
+    }
+
+    // 拖拽上传
+    ['student', 'teacher'].forEach(type => {
+        const dropZone = document.getElementById(type + 'DropZone');
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                selectedFiles[type] = file;
+                document.getElementById(type + 'File').files = e.dataTransfer.files;
+                handleFileSelect(document.getElementById(type + 'File'), type);
+            }
+        });
+    });
+
+    // 导入数据
+    function importData(type) {
+        const file = selectedFiles[type];
+        if (!file) {
+            alert('请先选择文件');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const url = type === 'students' ? '/admin/data/import/students' : '/admin/data/import/teachers';
+        
+        fetch(url, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(result => {
+            showImportResult(result);
+        })
+        .catch(error => {
+            alert('导入失败: ' + error.message);
+        });
+    }
+
+    // 显示导入结果
+    function showImportResult(result) {
+        const resultDiv = document.getElementById('importResult');
+        const contentDiv = document.getElementById('resultContent');
+        
+        resultDiv.style.display = 'block';
+        
+        let html = '';
+        if (result.success) {
+            html += `
+                <div class="alert alert-success">
+                    <h5><i class="bi bi-check-circle"></i> ${result.message}</h5>
+                </div>
+            `;
+            
+            if (result.errors && result.errors.length > 0) {
+                html += '<div class="alert alert-warning"><h6>错误详情：</h6><ul>';
+                result.errors.forEach(error => {
+                    html += `<li>${error}</li>`;
+                });
+                html += '</ul></div>';
+            }
+        } else {
+            html += `
+                <div class="alert alert-danger">
+                    <h5><i class="bi bi-x-circle"></i> ${result.message}</h5>
+                </div>
+            `;
+        }
+        
+        contentDiv.innerHTML = html;
+        
+        // 滚动到结果区域
+        resultDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 导出数据
+    function exportData(type) {
+        const urls = {
+            'sport-records': '/admin/data/export/sport-records',
+            'points': '/admin/data/export/points',
+            'evaluations': '/admin/data/export/evaluations'
+        };
+        
+        window.location.href = urls[type];
+    }
+</script>
+
+</body>
+</html>

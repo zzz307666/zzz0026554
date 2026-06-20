@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运动评估系统</title>
+    <!-- PWA支持 -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0d6efd">
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        /* ========== 密码框图标样式（保持最右侧定位） ========== */
+        .password-container {
+            position: relative;
+            width: 100%;
+        }
+
+        #passwordInput {
+            width: 100%;
+            padding-right: 45px !important; /* 为右侧图标预留空间 */
+        }
+
+        #passwordToggleIcon {
+            position: absolute !important;
+            right: 16px !important; /* 固定在最右侧 */
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            color: #9ca3af !important;
+            cursor: pointer !important;
+            z-index: 9999 !important;
+            display: none !important; /* 默认隐藏 */
+            font-size: 20px !important; /* 固定图标大小 */
+            width: 20px !important;
+            height: 20px !important;
+            line-height: 1 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            background: none !important;
+            box-shadow: none !important;
+        }
+
+        /* ========== 原有样式保持不变 ========== */
+        .login-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-bg::before, .login-bg::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .login-bg::before {
+            top: -50%;
+            right: -20%;
+            width: 800px;
+            height: 800px;
+        }
+
+        .login-bg::after {
+            bottom: -30%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.05);
+            animation-direction: reverse;
+            animation-duration: 15s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+            z-index: 1;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transform: translateY(0);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
+        }
+
+        .system-logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.3);
+        }
+
+        .logo-icon i {
+            font-size: 36px;
+            color: white;
+        }
+
+        .system-title {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .system-subtitle {
+            color: #6b7280;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .form-group {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: #f9fafb;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+            background: white;
+            transform: translateY(-1px);
+        }
+
+        .form-control:hover {
+            border-color: #d1d5db;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(79, 70, 229, 0.3);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.7s;
+        }
+
+        .login-btn:hover::after {
+            left: 100%;
+        }
+
+        .error-tip {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border: 2px solid #f87171;
+            color: #dc2626;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-weight: 600;
+            text-align: center;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .login-links {
+            margin-top: 24px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .login-links a {
+            color: #4f46e5;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .login-links a:hover {
+            color: #7c3aed;
+            text-decoration: underline;
+        }
+
+        .dashboard-panel {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+        }
+
+        .dashboard-header {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .welcome-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            border-color: #4f46e5;
+        }
+
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #f6f8ff 0%, #f0f4ff 100%);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover .feature-icon {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .feature-icon i {
+            font-size: 28px;
+            color: #4f46e5;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover .feature-icon i {
+            color: white;
+        }
+
+        .feature-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .feature-desc {
+            color: #6b7280;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .login-card {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+
+            .system-title {
+                font-size: 28px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-panel {
+                padding: 20px;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-card {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .feature-card {
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+        }
+
+        .feature-card:nth-child(1) { animation-delay: 0.1s; }
+        .feature-card:nth-child(2) { animation-delay: 0.2s; }
+        .feature-card:nth-child(3) { animation-delay: 0.3s; }
+        .feature-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .loading-dots {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        .dot:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1.0);
+            }
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(45deg);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .theme-toggle i {
+            font-size: 20px;
+            color: #4f46e5;
+        }
+        .error-tip-disabled {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+            border: 2px solid #f59e0b !important;
+            color: #92400e !important;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 登录模块 -->
+<div class="login-bg" th:if="${username} == null">
+    <div class="login-card">
+        <div class="system-logo">
+            <div class="logo-icon">
+                <i class="bi bi-activity"></i>
+            </div>
+            <h1 class="system-title">运动评估系统</h1>
+            <p class="system-subtitle">科学评估，健康运动</p>
+        </div>
+
+        <div class="error-tip" th:if="${param.error}">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${#strings.defaultString(param.msg[0], '用户名或密码错误')}"></span>
+        </div>
+
+        <form action="/doLogin" method="post" id="loginForm">
+            <div class="form-group">
+                <label class="form-label">用户名</label>
+                <input type="text" class="form-control" name="username" required
+                       placeholder="请输入用户名" id="usernameInput">
+            </div>
+
+            <!-- 密码框部分（保持最右侧图标定位） -->
+            <div class="form-group">
+                <label class="form-label">密码</label>
+                <div class="password-container">
+                    <input type="password"
+                           class="form-control"
+                           name="password"
+                           required
+                           placeholder="请输入密码"
+                           id="passwordInput">
+                    <!-- 始终显示眼睛图标 -->
+                    <i id="passwordToggleIcon" class="bi bi-eye"></i>
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginButton">
+                <span id="loginText">立即登录</span>
+                <div class="loading-dots" id="loginLoading" style="display: none;">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </button>
+        </form>
+
+        <div class="login-links">
+            <p>忘记密码？<a href="/reset-password" style="cursor: pointer;">重置密码</a></p>
+            <p>还没有账户？<a href="/contact-admin" style="cursor: pointer;">联系管理员开通</a></p>
+        </div>
+    </div>
+</div>
+
+<!-- 操作面板 -->
+<div class="dashboard-panel" th:if="${username} != null">
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="welcome-text">欢迎回来，<span th:text="${realName}"></span>！</h1>
+                <p class="text-muted mb-0">
+                    今天是 <span id="currentDate"></span>
+                    <span class="role-badge" th:text="${roleName}"></span>
+                </p>
+            </div>
+            <a href="/logout" class="btn btn-danger">
+                <i class="bi bi-box-arrow-right"></i> 安全登出
+            </a>
+        </div>
+    </div>
+
+    <div class="feature-grid">
+        <!-- 运动系统 - 进入对应角色工作台 -->
+        <a href="/student/index" class="text-decoration-none" th:if="${roleName == '学生'}">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-activity"></i>
+                </div>
+                <h4 class="feature-title">运动系统</h4>
+                <p class="feature-desc">进入学生工作台，进行运动打卡和管理</p>
+            </div>
+        </a>
+
+        <a href="/teacher/index" class="text-decoration-none" th:if="${roleName == '教师'}">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-activity"></i>
+                </div>
+                <h4 class="feature-title">运动系统</h4>
+                <p class="feature-desc">进入教师工作台，审核运动和评价学生</p>
+            </div>
+        </a>
+
+        <a href="/admin/index" class="text-decoration-none" th:if="${roleName == '管理员'}">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-activity"></i>
+                </div>
+                <h4 class="feature-title">运动系统</h4>
+                <p class="feature-desc">进入管理后台，配置系统和管理用户</p>
+            </div>
+        </a>
+
+        <!-- 个人信息 -->
+        <a href="/profile" class="text-decoration-none">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <h4 class="feature-title">个人信息</h4>
+                <p class="feature-desc">管理个人资料、头像和密码设置</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // 登录表单提交动画
+    var loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            var button = document.getElementById('loginButton');
+            var text = document.getElementById('loginText');
+            var loading = document.getElementById('loginLoading');
+
+            if (button && text && loading) {
+                button.disabled = true;
+                text.style.display = 'none';
+                loading.style.display = 'flex';
+            }
+        });
+    }
+
+    // 设置当前日期
+    var now = new Date();
+    var options = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+    };
+    var currentDateElement = document.getElementById('currentDate');
+    if (currentDateElement) {
+        currentDateElement.textContent = now.toLocaleDateString('zh-CN', options);
+    }
+
+    // 主题切换
+    var themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            var body = document.body;
+            var bgElements = document.querySelectorAll('.login-bg, .dashboard-panel');
+            if (bgElements.length > 0) {
+                var firstBg = bgElements[0];
+                var currentBg = window.getComputedStyle(firstBg).backgroundImage;
+
+                if (currentBg.includes('#667eea')) {
+                    bgElements.forEach(function(el) {
+                        el.style.background = 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)';
+                    });
+                } else {
+                    bgElements.forEach(function(el) {
+                        el.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    });
+                }
+            }
+        });
+    }
+
+    // ========== 核心修改：密码图标逻辑 ==========
+    const passwordInput = document.getElementById('passwordInput');
+    const passwordToggleIcon = document.getElementById('passwordToggleIcon');
+
+    // 确保只初始化一次
+    let isPasswordIconInited = false;
+    if (passwordInput && passwordToggleIcon && !isPasswordIconInited) {
+        isPasswordIconInited = true;
+
+        // 控制图标显示/隐藏：有内容就显示，无内容就隐藏
+        function updateIconVisibility() {
+            if (passwordInput.value.trim() !== '') {
+                passwordToggleIcon.style.display = 'block'; // 有内容始终显示
+            } else {
+                passwordToggleIcon.style.display = 'none';
+                passwordInput.type = 'password'; // 重置为密码类型
+            }
+        }
+
+        // 初始检查
+        updateIconVisibility();
+
+        // 监听输入事件，实时更新图标显示状态
+        passwordInput.addEventListener('input', updateIconVisibility);
+
+        // 点击图标仅切换密码显示状态，不切换图标样式（始终显示眼睛）
+        let isClicking = false;
+        passwordToggleIcon.addEventListener('click', function() {
+            if (isClicking) return;
+            isClicking = true;
+
+            // 只切换输入框类型，不修改图标样式
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+            } else {
+                passwordInput.type = 'password';
+            }
+
+            setTimeout(() => { isClicking = false; }, 100);
+        });
+    }
+
+    // 键盘快捷键
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+            e.preventDefault();
+            var inputs = Array.from(document.querySelectorAll('.form-control'));
+            var currentIndex = inputs.indexOf(e.target);
+            if (currentIndex < inputs.length - 1) {
+                inputs[currentIndex + 1].focus();
+            } else if (currentIndex === inputs.length - 1) {
+                var loginButton = document.getElementById('loginButton');
+                if (loginButton) {
+                    loginButton.click();
+                }
+            }
+        }
+    });
+
+    // 卡片点击效果
+    document.querySelectorAll('.feature-card').forEach(function(card) {
+        card.addEventListener('click', function(e) {
+            if (this.classList.contains('clicked')) return;
+            this.classList.add('clicked');
+            this.style.transform = 'scale(0.98)';
+            setTimeout(function() {
+                card.style.transform = '';
+                card.classList.remove('clicked');
+            }, 30);
+        });
+    });
+
+    // 页面加载动画
+    window.addEventListener('load', function() {
+        document.body.style.opacity = '0';
+        document.body.style.transition = 'opacity 0.5s ease-in';
+        setTimeout(function() {
+            document.body.style.opacity = '1';
+        }, 10);
+    });
+
+    // PWA Service Worker注册
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function(registration) {
+                    console.log('ServiceWorker registration successful');
+                })
+                .catch(function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+        });
+    }
+</script>
+</body>
+</html>

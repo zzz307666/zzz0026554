@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的积分 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .total-points-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .total-points-value {
+            font-size: 4rem;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container mt-4">
+    <div class="mb-4">
+        <a href="/student/index" class="btn btn-secondary">返回首页</a>
+    </div>
+
+    <!-- 总积分卡片 -->
+    <div class="total-points-card shadow">
+        <h3><i class="bi bi-trophy-fill"></i> 我的总积分</h3>
+        <div class="total-points-value" th:text="${totalPoints}">0</div>
+        <p class="mb-0">继续运动，积累更多积分！</p>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-light">
+            <h4 class="mb-0"><i class="bi bi-list-check"></i> 积分明细</h4>
+        </div>
+        <div class="card-body">
+            <!-- 筛选条件 -->
+            <form class="row g-3 mb-4" method="get" action="/student/points">
+                <div class="col-md-4">
+                    <select class="form-select" name="pointsType">
+                        <option value="">全部类型</option>
+                        <option value="MOTION" th:selected="${pointsType == 'MOTION'}">运动积分</option>
+                        <option value="EVALUATION" th:selected="${pointsType == 'EVALUATION'}">评价积分</option>
+                        <option value="BONUS" th:selected="${pointsType == 'BONUS'}">奖励积分</option>
+                        <option value="PENALTY" th:selected="${pointsType == 'PENALTY'}">扣分</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> 查询
+                    </button>
+                </div>
+            </form>
+
+            <!-- 数据表格 -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>积分类型</th>
+                            <th>积分值</th>
+                            <th>说明</th>
+                            <th>获得时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="point : ${page.records}">
+                            <td>
+                                <span th:if="${point.pointsType == 'MOTION'}" class="badge bg-success">运动积分</span>
+                                <span th:if="${point.pointsType == 'EVALUATION'}" class="badge bg-info">评价积分</span>
+                                <span th:if="${point.pointsType == 'BONUS'}" class="badge bg-warning">奖励积分</span>
+                                <span th:if="${point.pointsType == 'PENALTY'}" class="badge bg-danger">扣分</span>
+                            </td>
+                            <td>
+                                <span th:if="${point.pointsValue > 0}" class="text-success fw-bold" 
+                                      th:text="'+' + ${point.pointsValue}">+20.00</span>
+                                <span th:if="${point.pointsValue < 0}" class="text-danger fw-bold" 
+                                      th:text="${point.pointsValue}">-50.00</span>
+                            </td>
+                            <td th:text="${point.description}">运动打卡</td>
+                            <td th:text="${#temporals.format(point.createTime, 'yyyy-MM-dd HH:mm')}">2026-05-10 08:00</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(page.records)}">
+                            <td colspan="4" class="text-center text-muted py-4">暂无积分记录</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            <nav th:if="${page.total > 0}">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${page.current == 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/student/points(page=${page.current - 1}, pointsType=${pointsType})}">上一页</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">第 [[${page.current}]] / [[${page.pages}]] 页</span>
+                    </li>
+                    <li class="page-item" th:classappend="${page.current == page.pages} ? 'disabled'">
+                        <a class="page-link" th:href="@{/student/points(page=${page.current + 1}, pointsType=${pointsType})}">下一页</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "运动评估系统",
+  "short_name": "运动评估",
+  "description": "基于Spring Boot的运动能力评估系统",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d6efd",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/image/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/image/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["education", "sports", "health"],
+  "lang": "zh-CN"
+}

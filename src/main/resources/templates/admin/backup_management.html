@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据备份与恢复 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <!-- 页面标题 -->
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <a href="/admin/index" class="btn btn-secondary">返回后台</a>
+            <h3 class="d-inline ms-3">💾 数据备份与恢复</h3>
+        </div>
+        <button class="btn btn-success" onclick="showBackupModal()">
+            <i class="bi bi-plus-circle"></i> 新建备份
+        </button>
+    </div>
+
+    <!-- 提示信息 -->
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle-fill"></i> 
+        <strong>提示：</strong>定期备份数据库可以保障数据安全。建议在系统维护前或重要操作前进行备份。
+    </div>
+
+    <!-- 备份列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-archive"></i> 备份文件列表</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="backupTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="60">ID</th>
+                            <th>文件名</th>
+                            <th>文件大小</th>
+                            <th>创建时间</th>
+                            <th width="280">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新建备份模态框 -->
+<div class="modal fade" id="backupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新建数据库备份</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">备份名称（可选）</label>
+                    <input type="text" class="form-control" id="backupName" placeholder="例如：版本更新前备份">
+                    <small class="text-muted">留空将使用默认名称</small>
+                </div>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    备份过程可能需要几分钟，请耐心等待。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="createBackup()">
+                    <i class="bi bi-save"></i> 开始备份
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 恢复确认模态框 -->
+<div class="modal fade" id="restoreModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">⚠️ 确认恢复数据库</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <strong>警告：</strong>恢复操作将覆盖当前数据库的所有数据！<br>
+                    此操作不可逆，请谨慎操作。
+                </div>
+                <p>您确定要恢复到备份文件：<strong id="restoreFileName"></strong> 吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="confirmRestore()">
+                    <i class="bi bi-exclamation-triangle"></i> 确认恢复
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+    let currentRestoreId = null;
+    let backupModal, restoreModal;
+
+    $(document).ready(function() {
+        backupModal = new bootstrap.Modal(document.getElementById('backupModal'));
+        restoreModal = new bootstrap.Modal(document.getElementById('restoreModal'));
+        
+        loadBackupList();
+    });
+
+    // 加载备份列表
+    function loadBackupList() {
+        $.get('/admin/backup/list', function(result) {
+            if (result.success) {
+                const backups = result.data;
+                
+                if (backups.length === 0) {
+                    $('#backupTable tbody').html('<tr><td colspan="5" class="text-center text-muted">暂无备份文件</td></tr>');
+                    return;
+                }
+                
+                let html = '';
+                backups.forEach(backup => {
+                    html += `
+                        <tr>
+                            <td>${backup.id}</td>
+                            <td><i class="bi bi-file-earmark-sql"></i> ${backup.fileName}</td>
+                            <td>${backup.fileSize}</td>
+                            <td>${backup.createTime}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="downloadBackup(${backup.id})">
+                                    <i class="bi bi-download"></i> 下载
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning" onclick="showRestoreModal(${backup.id}, '${backup.fileName}')">
+                                    <i class="bi bi-arrow-counterclockwise"></i> 恢复
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteBackup(${backup.id})">
+                                    <i class="bi bi-trash"></i> 删除
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                $('#backupTable tbody').html(html);
+            }
+        });
+    }
+
+    // 显示新建备份模态框
+    function showBackupModal() {
+        $('#backupName').val('');
+        backupModal.show();
+    }
+
+    // 创建备份
+    function createBackup() {
+        const backupName = $('#backupName').val();
+        
+        $.ajax({
+            url: '/admin/backup/create',
+            method: 'POST',
+            data: { backupName: backupName },
+            success: function(result) {
+                if (result.success) {
+                    alert('备份成功！');
+                    backupModal.hide();
+                    loadBackupList();
+                } else {
+                    alert('备份失败：' + result.message);
+                }
+            },
+            error: function() {
+                alert('备份失败，请稍后重试');
+            }
+        });
+    }
+
+    // 下载备份
+    function downloadBackup(backupId) {
+        window.location.href = `/admin/backup/download/${backupId}`;
+    }
+
+    // 显示恢复确认模态框
+    function showRestoreModal(backupId, fileName) {
+        currentRestoreId = backupId;
+        $('#restoreFileName').text(fileName);
+        restoreModal.show();
+    }
+
+    // 确认恢复
+    function confirmRestore() {
+        if (!currentRestoreId) {
+            return;
+        }
+        
+        $.ajax({
+            url: `/admin/backup/restore/${currentRestoreId}`,
+            method: 'POST',
+            success: function(result) {
+                if (result.success) {
+                    alert('恢复成功！系统将重新加载。');
+                    restoreModal.hide();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    alert('恢复失败：' + result.message);
+                }
+            },
+            error: function() {
+                alert('恢复失败，请稍后重试');
+            }
+        });
+    }
+
+    // 删除备份
+    function deleteBackup(backupId) {
+        if (!confirm('确定要删除这个备份文件吗？')) {
+            return;
+        }
+        
+        $.ajax({
+            url: `/admin/backup/delete/${backupId}`,
+            method: 'DELETE',
+            success: function(result) {
+                if (result.success) {
+                    alert('删除成功');
+                    loadBackupList();
+                } else {
+                    alert('删除失败：' + result.message);
+                }
+            },
+            error: function() {
+                alert('删除失败，请稍后重试');
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生成长档案 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .timeline-item {
+            border-left: 3px solid #667eea;
+            padding-left: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 0;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        .stat-card {
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <!-- 返回按钮 -->
+    <div class="mb-3">
+        <a href="javascript:history.back()" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    <!-- 学生基本信息卡片 -->
+    <div class="profile-header" id="studentInfo">
+        <div class="row align-items-center">
+            <div class="col-md-2 text-center">
+                <div style="width: 100px; height: 100px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                    <i class="bi bi-person-fill" style="font-size: 60px; color: #667eea;"></i>
+                </div>
+            </div>
+            <div class="col-md-10">
+                <h2 class="mb-2" id="studentName">加载中...</h2>
+                <p class="mb-1">
+                    <span class="badge bg-light text-dark me-2" id="studentNo">学号：--</span>
+                    <span class="badge bg-light text-dark me-2" id="className">班级：--</span>
+                    <span class="badge bg-light text-dark" id="gender">性别：--</span>
+                </p>
+                <p class="mb-0">
+                    <small>入学时间：<span id="enrollmentDate">--</span> | 
+                    总积分：<strong id="totalPoints">0</strong> | 
+                    运动记录：<strong id="totalRecords">0</strong> 次</small>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4" id="growthStats">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">运动天数</h6>
+                    <h2 class="mb-0" id="totalSportDays">--</h2>
+                    <small>连续打卡：<span id="consecutiveDays">--</span> 天</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">平均时长</h6>
+                    <h2 class="mb-0" id="avgDuration">--</h2>
+                    <small>分钟/次</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-warning text-dark">
+                <div class="card-body">
+                    <h6 class="card-title">班级排名</h6>
+                    <h2 class="mb-0">#<span id="rankInClass">--</span></h2>
+                    <small>共 <span id="totalStudents">--</span> 人</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">积分增长率</h6>
+                    <h2 class="mb-0" id="pointsGrowthRate">--</h2>
+                    <small>较上月</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="row mb-4">
+        <!-- 积分变化曲线 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> 积分变化趋势</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="pointsCurveChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 评价雷达图 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-radar"></i> 五维评价对比</h5>
+                    <select class="form-select form-select-sm" id="evalPeriod" style="width: auto;">
+                        <option value="latest">最新评价</option>
+                        <option value="compare">历史对比</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 运动记录时间轴 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> 最近运动记录</h5>
+                </div>
+                <div class="card-body" id="sportTimeline">
+                    <!-- 时间轴数据将通过JavaScript动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成长趋势分析 -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightbulb"></i> 成长趋势分析与建议</h5>
+                </div>
+                <div class="card-body" id="growthAnalysis">
+                    <!-- 分析数据将通过JavaScript动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    const studentId = /*[[${studentId}]]*/ 1;
+
+    $(document).ready(function() {
+        loadAllData();
+    });
+
+    // 加载所有数据
+    function loadAllData() {
+        loadBasicInfo();
+        loadSportTimeline();
+        loadPointsCurve();
+        loadEvaluationRadar();
+        loadGrowthTrend();
+    }
+
+    // 加载基本信息
+    function loadBasicInfo() {
+        $.get(`/teacher/student/profile/${studentId}/basic-info`, function(result) {
+            if (result.success) {
+                const data = result.data;
+                $('#studentName').text(data.studentName);
+                $('#studentNo').text('学号：' + data.studentNo);
+                $('#className').text('班级：' + data.className);
+                $('#gender').text('性别：' + data.gender);
+                $('#enrollmentDate').text(data.enrollmentDate);
+                $('#totalPoints').text(data.totalPoints);
+                $('#totalRecords').text(data.totalSportRecords);
+                $('#avgDuration').text(data.avgDuration);
+            }
+        });
+    }
+
+    // 加载运动时间轴
+    function loadSportTimeline() {
+        $.get(`/teacher/student/profile/${studentId}/sport-timeline`, function(result) {
+            if (result.success) {
+                const data = result.data;
+                let html = '';
+                
+                data.forEach(record => {
+                    html += `
+                        <div class="timeline-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <span class="badge bg-primary me-2">${record.sportType}</span>
+                                        ${record.date}
+                                    </h6>
+                                    <p class="mb-0 text-muted">
+                                        时长：${record.duration}分钟 | 
+                                        距离：${record.distance}米 | 
+                                        卡路里：${record.calories}kcal | 
+                                        获得积分：+${record.points}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                $('#sportTimeline').html(html);
+            }
+        });
+    }
+
+    // 加载积分曲线
+    function loadPointsCurve() {
+        $.get(`/teacher/student/profile/${studentId}/points-curve`, function(result) {
+            if (result.success) {
+                const data = result.data;
+                const labels = data.map(item => item.month);
+                const points = data.map(item => item.points);
+                
+                const ctx = document.getElementById('pointsCurveChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '累计积分',
+                            data: points,
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // 加载评价雷达图
+    function loadEvaluationRadar() {
+        $.get(`/teacher/student/profile/${studentId}/evaluation-radar`, function(result) {
+            if (result.success) {
+                const data = result.data;
+                const latest = data.latestEval;
+                
+                const ctx = document.getElementById('radarChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['耐力', '力量', '速度', '柔韧', '协调'],
+                        datasets: [{
+                            label: '最新评价',
+                            data: [
+                                latest.endurance,
+                                latest.strength,
+                                latest.speed,
+                                latest.flexibility,
+                                latest.coordination
+                            ],
+                            backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // 加载成长趋势分析
+    function loadGrowthTrend() {
+        $.get(`/teacher/student/profile/${studentId}/growth-trend`, function(result) {
+            if (result.success) {
+                const data = result.data;
+                
+                // 更新统计卡片
+                $('#totalSportDays').text(data.totalSportDays);
+                $('#consecutiveDays').text(data.consecutiveDays);
+                $('#rankInClass').text(data.rankInClass);
+                $('#totalStudents').text(data.totalStudentsInClass);
+                $('#pointsGrowthRate').text(data.pointsGrowthRate);
+                
+                // 生成分析报告
+                let html = `
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-star-fill text-warning"></i> 运动习惯分析</h6>
+                            <ul class="list-unstyled">
+                                <li>✓ 最喜欢运动：<strong>${data.favoriteSport}</strong></li>
+                                <li>✓ 运动频率：<strong>${data.sportFrequency}</strong></li>
+                                <li>✓ 每周平均时长：<strong>${data.avgDurationPerWeek}分钟</strong></li>
+                                <li>✓ 评价提升率：<strong>${data.evaluationImprovement}</strong></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-lightbulb-fill text-info"></i> 个性化建议</h6>
+                            <div class="alert alert-info">
+                                <ul class="mb-0">
+                `;
+                
+                data.suggestions.forEach(suggestion => {
+                    html += `<li>${suggestion}</li>`;
+                });
+                
+                html += `
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                $('#growthAnalysis').html(html);
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

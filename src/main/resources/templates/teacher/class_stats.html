@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班级数据统计 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            border-left: 4px solid #4f46e5;
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .ranking-badge {
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: bold;
+        }
+        .rank-1 { background: linear-gradient(135deg, #ffd700, #ffed4e); color: #333; }
+        .rank-2 { background: linear-gradient(135deg, #c0c0c0, #e8e8e8); color: #333; }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32, #daa520); color: white; }
+        .rank-other { background: #e5e7eb; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <div class="mb-4">
+        <a th:href="${isAdmin} ? '/admin/index' : '/teacher/index'" 
+           class="btn btn-secondary">返回后台</a>
+        <h3 class="d-inline ms-3">📊 班级数据统计</h3>
+    </div>
+
+    <!-- 班级选择和月份筛选 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">选择班级：</label>
+                    <select class="form-select" id="classSelect">
+                        <option value="">请选择班级</option>
+                        <option th:each="cls : ${classes}" 
+                                th:value="${cls.id}" 
+                                th:text="${cls.className}">班级名称</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">选择月份：</label>
+                    <input type="month" class="form-control" id="monthSelect" value="">
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-primary" onclick="loadClassStats()">
+                        <i class="bi bi-bar-chart"></i> 加载统计数据
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计概览卡片 -->
+    <div class="row mb-4" id="statsCards" style="display:none;">
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <h6 class="text-muted">学生总数</h6>
+                    <h3 class="mb-0" id="totalStudents">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card" style="border-left-color: #10b981;">
+                <div class="card-body">
+                    <h6 class="text-muted">平均积分</h6>
+                    <h3 class="mb-0 text-success" id="avgPoints">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card" style="border-left-color: #f59e0b;">
+                <div class="card-body">
+                    <h6 class="text-muted">总打卡次数</h6>
+                    <h3 class="mb-0 text-warning" id="totalCheckins">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card" style="border-left-color: #ef4444;">
+                <div class="card-body">
+                    <h6 class="text-muted">总运动时长</h6>
+                    <h3 class="mb-0 text-danger" id="totalDuration">0分钟</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="row" id="chartsArea" style="display:none;">
+        <!-- 学生积分排行 -->
+        <div class="col-md-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">🏆 学生积分排行榜</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="rankingChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 运动类型分布 -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">🎯 运动类型分布</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="sportTypeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 详细数据表格 -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">📋 学生详细数据</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="exportData()">
+                        <i class="bi bi-download"></i> 导出数据
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="studentTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>排名</th>
+                                    <th>学号</th>
+                                    <th>姓名</th>
+                                    <th>打卡次数</th>
+                                    <th>运动时长(分钟)</th>
+                                    <th>消耗卡路里</th>
+                                    <th>获得积分</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody">
+                                <!-- 动态填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 空状态提示 -->
+    <div class="text-center py-5" id="emptyState">
+        <i class="bi bi-bar-chart" style="font-size: 4rem; color: #e5e7eb;"></i>
+        <h5 class="text-muted mt-3">请选择班级查看统计数据</h5>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+    let rankingChart = null;
+    let sportTypeChart = null;
+    let currentClassId = null;
+
+    // 加载班级统计数据
+    function loadClassStats() {
+        const classId = document.getElementById('classSelect').value;
+        const month = document.getElementById('monthSelect').value;
+        if (!classId) {
+            alert('请先选择班级');
+            return;
+        }
+
+        currentClassId = classId;
+
+        // 显示加载状态
+        document.getElementById('emptyState').innerHTML = '<div class="spinner-border text-primary"></div><p class="mt-3">加载中...</p>';
+
+        // 构建请求参数
+        let url = '/teacher/class/stats/data?classId=' + classId;
+        if (month) {
+            url += '&month=' + month;
+        }
+
+        // 获取学生统计数据
+        fetch(url)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    renderStudentStats(result.data);
+                    loadSportTypeDistribution(classId, month);
+                    
+                    // 显示统计区域
+                    document.getElementById('statsCards').style.display = 'flex';
+                    document.getElementById('chartsArea').style.display = 'flex';
+                    document.getElementById('emptyState').style.display = 'none';
+                } else {
+                    alert('加载失败：' + result.message);
+                }
+            })
+            .catch(error => {
+                alert('加载失败：' + error.message);
+            });
+    }
+
+    // 渲染学生统计数据
+    function renderStudentStats(data) {
+        // 更新概览卡片
+        document.getElementById('totalStudents').textContent = data.length;
+        
+        let totalPoints = 0;
+        let totalCheckins = 0;
+        let totalDuration = 0;
+
+        data.forEach(item => {
+            totalPoints += parseFloat(item.totalPoints);
+            totalCheckins += parseInt(item.totalCount);
+            totalDuration += parseFloat(item.totalDuration);
+        });
+
+        document.getElementById('avgPoints').textContent = data.length > 0 ? 
+            Math.round(totalPoints / data.length * 100) / 100 : 0;
+        document.getElementById('totalCheckins').textContent = totalCheckins;
+        document.getElementById('totalDuration').textContent = Math.round(totalDuration) + '分钟';
+
+        // 渲染排行榜图表（前10名）
+        renderRankingChart(data.slice(0, 10));
+
+        // 渲染表格
+        renderStudentTable(data);
+    }
+
+    // 渲染排行榜图表
+    function renderRankingChart(data) {
+        const ctx = document.getElementById('rankingChart').getContext('2d');
+        
+        if (rankingChart) {
+            rankingChart.destroy();
+        }
+
+        rankingChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(item => item.studentName),
+                datasets: [{
+                    label: '积分',
+                    data: data.map(item => item.totalPoints),
+                    backgroundColor: [
+                        'rgba(255, 215, 0, 0.8)',   // 金色
+                        'rgba(192, 192, 192, 0.8)', // 银色
+                        'rgba(205, 127, 50, 0.8)',  // 铜色
+                        ...Array(data.length - 3).fill('rgba(79, 70, 229, 0.8)')
+                    ],
+                    borderColor: [
+                        '#ffd700',
+                        '#c0c0c0',
+                        '#cd7f32',
+                        ...Array(data.length - 3).fill('#4f46e5')
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // 渲染学生表格
+    function renderStudentTable(data) {
+        const tbody = document.getElementById('studentTableBody');
+        tbody.innerHTML = '';
+
+        data.forEach((item, index) => {
+            const rank = index + 1;
+            let rankClass = 'rank-other';
+            if (rank === 1) rankClass = 'rank-1';
+            else if (rank === 2) rankClass = 'rank-2';
+            else if (rank === 3) rankClass = 'rank-3';
+
+            const row = `
+                <tr>
+                    <td><span class="ranking-badge ${rankClass}">${rank}</span></td>
+                    <td>${item.studentNo}</td>
+                    <td>${item.studentName}</td>
+                    <td>${item.totalCount}</td>
+                    <td>${Math.round(item.totalDuration)}</td>
+                    <td>${Math.round(item.totalCalories)}</td>
+                    <td><strong class="text-primary">${item.totalPoints}</strong></td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    // 加载运动类型分布
+    function loadSportTypeDistribution(classId, month) {
+        let url = '/teacher/class/stats/sport-distribution?classId=' + classId;
+        if (month) {
+            url += '&month=' + month;
+        }
+        fetch(url)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    renderSportTypeChart(result.data);
+                }
+            })
+            .catch(error => {
+                console.error('加载运动类型分布失败:', error);
+            });
+    }
+
+    // 渲染运动类型分布图
+    function renderSportTypeChart(data) {
+        const ctx = document.getElementById('sportTypeChart').getContext('2d');
+        
+        if (sportTypeChart) {
+            sportTypeChart.destroy();
+        }
+
+        const labels = Object.keys(data);
+        const values = Object.values(data);
+
+        sportTypeChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 206, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)',
+                        'rgba(255, 159, 64, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // 导出数据
+    function exportData() {
+        alert('导出功能开发中...\n\n可以将表格数据转换为Excel格式下载');
+    }
+</script>
+
+</body>
+</html>

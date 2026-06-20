@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>积分规则配置 - 运动评估系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+    <style>
+        .rule-card {
+            transition: all 0.3s;
+            border-left: 4px solid #4f46e5;
+        }
+        .rule-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .points-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #10b981;
+        }
+        .rule-type-badge {
+            font-size: 0.9rem;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid mt-4">
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <a href="/admin/index" class="btn btn-secondary">返回后台</a>
+            <h3 class="d-inline ms-3">📊 积分规则配置</h3>
+        </div>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">
+            <i class="bi bi-plus-circle"></i> 添加积分规则
+        </button>
+    </div>
+
+    <!-- 规则类型筛选 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h6>基础积分规则</h6>
+                            <h3 id="baseCount">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h6>奖励积分规则</h6>
+                            <h3 id="bonusCount">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body text-center">
+                            <h6>惩罚积分规则</h6>
+                            <h3 id="penaltyCount">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h6>总规则数</h6>
+                            <h3 id="totalCount">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 积分规则列表 -->
+    <div class="row" id="rulesList">
+        <div class="col-md-4 mb-4" th:each="rule : ${rules}">
+            <div class="card rule-card h-100">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0" th:text="${rule.ruleName}">规则名称</h5>
+                    <span th:if="${rule.ruleType == 'BASE'}" class="badge bg-primary rule-type-badge">基础</span>
+                    <span th:if="${rule.ruleType == 'BONUS'}" class="badge bg-success rule-type-badge">奖励</span>
+                    <span th:if="${rule.ruleType == 'PENALTY'}" class="badge bg-danger rule-type-badge">惩罚</span>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="points-value" th:text="${rule.pointsValue > 0 ? '+' + rule.pointsValue : rule.pointsValue}">+10</div>
+                        <small class="text-muted">积分</small>
+                    </div>
+                    
+                    <p class="text-muted small" th:text="${rule.description ?: '暂无描述'}">规则描述</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">触发条件：</label>
+                        <code class="d-block bg-light p-2 rounded small" th:text="${rule.conditionJson ?: '{}'}">{}</code>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span th:if="${rule.status == 1}" class="badge bg-success">启用</span>
+                            <span th:if="${rule.status == 0}" class="badge bg-secondary">禁用</span>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    th:onclick="'editRule(' + ${rule.id} + ')'">
+                                <i class="bi bi-pencil"></i> 编辑
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" 
+                                    th:onclick="'toggleStatus(' + ${rule.id} + ')'">
+                                <i class="bi bi-toggle-on"></i> 
+                                <span th:if="${rule.status == 1}">禁用</span>
+                                <span th:if="${rule.status == 0}">启用</span>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" 
+                                    th:onclick="'deleteRule(' + ${rule.id} + ')'">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12" th:if="${#lists.isEmpty(rules)}">
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                <p class="mt-3">暂无积分规则，请点击右上角添加</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加模态框 -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加积分规则</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">规则名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="ruleName" required placeholder="如：运动打卡基础积分">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">规则编码 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="ruleCode" required placeholder="如：CHECKIN_BASE">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">规则类型 <span class="text-danger">*</span></label>
+                            <select class="form-select" name="ruleType" required>
+                                <option value="BASE">基础积分</option>
+                                <option value="BONUS">奖励积分</option>
+                                <option value="PENALTY">惩罚积分</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">积分值 <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="pointsValue" step="0.01" required placeholder="正数为奖励，负数为惩罚">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">触发条件（JSON格式）</label>
+                        <textarea class="form-control" name="conditionJson" rows="3" placeholder='{"minDays": 7, "minCount": 20}'></textarea>
+                        <small class="text-muted">示例：{"minDays": 7} 表示最少连续7天</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">规则描述</label>
+                        <textarea class="form-control" name="description" rows="2" placeholder="规则的详细说明"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitAdd()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑模态框 -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑积分规则</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" name="id">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">规则名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="ruleName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">规则编码</label>
+                            <input type="text" class="form-control" name="ruleCode" readonly>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">规则类型</label>
+                            <select class="form-select" name="ruleType" required>
+                                <option value="BASE">基础积分</option>
+                                <option value="BONUS">奖励积分</option>
+                                <option value="PENALTY">惩罚积分</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">积分值 <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="pointsValue" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">触发条件（JSON格式）</label>
+                        <textarea class="form-control" name="conditionJson" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">规则描述</label>
+                        <textarea class="form-control" name="description" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 统计规则数量
+    function countRules() {
+        const rules = document.querySelectorAll('.rule-card');
+        let baseCount = 0, bonusCount = 0, penaltyCount = 0;
+        
+        rules.forEach(card => {
+            const badge = card.querySelector('.rule-type-badge');
+            if (badge.classList.contains('bg-primary')) baseCount++;
+            else if (badge.classList.contains('bg-success')) bonusCount++;
+            else if (badge.classList.contains('bg-danger')) penaltyCount++;
+        });
+        
+        document.getElementById('baseCount').textContent = baseCount;
+        document.getElementById('bonusCount').textContent = bonusCount;
+        document.getElementById('penaltyCount').textContent = penaltyCount;
+        document.getElementById('totalCount').textContent = rules.length;
+    }
+
+    // 提交添加
+    function submitAdd() {
+        const form = document.getElementById('addForm');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        data.pointsValue = parseFloat(data.pointsValue);
+
+        fetch('/admin/points/rule/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            if (result.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            alert('添加失败：' + error.message);
+        });
+    }
+
+    // 编辑规则
+    function editRule(id) {
+        const row = event.target.closest('.rule-card');
+        const header = row.querySelector('.card-header h5');
+        const pointsValue = row.querySelector('.points-value').textContent.replace('+', '');
+        const description = row.querySelector('.text-muted.small').textContent;
+        const conditionJson = row.querySelector('code').textContent;
+        const ruleTypeBadge = row.querySelector('.rule-type-badge');
+        
+        let ruleType = 'BASE';
+        if (ruleTypeBadge.classList.contains('bg-success')) ruleType = 'BONUS';
+        else if (ruleTypeBadge.classList.contains('bg-danger')) ruleType = 'PENALTY';
+
+        document.querySelector('#editForm [name="id"]').value = id;
+        document.querySelector('#editForm [name="ruleName"]').value = header.textContent;
+        document.querySelector('#editForm [name="ruleCode"]').value = ''; // 需要从数据属性获取
+        document.querySelector('#editForm [name="ruleType"]').value = ruleType;
+        document.querySelector('#editForm [name="pointsValue"]').value = pointsValue;
+        document.querySelector('#editForm [name="conditionJson"]').value = conditionJson === '{}' ? '' : conditionJson;
+        document.querySelector('#editForm [name="description"]').value = description === '暂无描述' ? '' : description;
+
+        const modal = new bootstrap.Modal(document.getElementById('editModal'));
+        modal.show();
+    }
+
+    // 提交编辑
+    function submitEdit() {
+        const form = document.getElementById('editForm');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        data.id = parseInt(data.id);
+        data.pointsValue = parseFloat(data.pointsValue);
+
+        fetch('/admin/points/rule/update', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            if (result.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            alert('更新失败：' + error.message);
+        });
+    }
+
+    // 切换状态
+    function toggleStatus(id) {
+        if (!confirm('确定要切换该规则的状态吗？')) return;
+
+        fetch('/admin/points/rule/toggle-status/' + id, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            if (result.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            alert('操作失败：' + error.message);
+        });
+    }
+
+    // 删除规则
+    function deleteRule(id) {
+        if (!confirm('确定要删除该积分规则吗？此操作不可恢复！')) return;
+
+        fetch('/admin/points/rule/delete/' + id, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            if (result.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            alert('删除失败：' + error.message);
+        });
+    }
+
+    // 页面加载时统计
+    window.onload = function() {
+        countRules();
+    };
+</script>
+
+</body>
+</html>

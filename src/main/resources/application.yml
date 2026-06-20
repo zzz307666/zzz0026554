@@ -1,0 +1,73 @@
+spring:
+  # 数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/sport_evaluation?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+  # Thymeleaf配置
+  thymeleaf:
+    cache: true
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+    mode: HTML
+    servlet:
+      content-type: text/html
+  # 静态资源
+  web:
+    resources:
+      static-locations: classpath:/static/,file:${upload.avatar-path}
+      add-mappings: true
+      cache:
+        period: 3600
+  mvc:
+    static-path-pattern: /**
+  # 文件上传
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 100MB
+
+# 服务器配置
+server:
+  port: 8080
+  servlet:
+    context-path: /
+    session:
+      timeout: 1800s
+      cookie:
+        http-only: true
+  tomcat:
+    uri-encoding: utf-8
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: AUTO
+
+# 日志配置
+logging:
+  level:
+    com.hhjt: DEBUG
+    org.springframework.security: INFO
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n'
+    file: '%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n'
+  file:
+    name: logs/application.log
+
+# 应用信息
+app:
+  name: 运动评估系统
+  version: 1.0.0
+  description: 基于Spring Boot的运动能力评估系统
+
+# 上传配置
+upload:
+  avatar-path: D:/upload/avatar/  # 本地绝对路径，Linux/Mac可改为 /opt/upload/avatar/
+  access-path: /upload/avatar/  # 访问前缀
